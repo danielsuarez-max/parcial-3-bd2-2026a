@@ -1,0 +1,9 @@
+# Entorno virtual de Python (se regenera con requirements.txt)
+.venv/
+
+# Variables de entorno con credenciales (NUNCA subir)
+.env
+
+# Cachés de Python
+__pycache__/
+*.pyc

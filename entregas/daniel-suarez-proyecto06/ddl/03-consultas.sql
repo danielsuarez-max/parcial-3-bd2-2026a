@@ -128,50 +128,60 @@ ORDER BY dia;
 -- =========================================================================
 -- Resumen mensual: cuántos ingresos por modalidad y cuánto se recaudó.
 --
--- Estructura: dos sub-queries agregadas (una por ingresos, otra por
--- mensualidades) unidas por mes con LEFT JOIN. Esta forma:
---   1) es compatible con sql_mode=only_full_group_by,
---   2) es más eficiente (cada sub-query solo agrega lo suyo),
---   3) muestra meses con mensualidades aunque no tengan ingresos.
+-- Estructura en 3 partes:
+--   meses : lista de TODOS los meses que aparecen en ingreso o mensualidad
+--           (simula FULL OUTER JOIN que MySQL no soporta nativamente)
+--   ing   : agregación de ingresos por mes
+--   men   : agregación de mensualidades por mes
+-- Se parte de `meses` con LEFT JOIN a las otras dos: ningún mes se pierde.
 SELECT
-    COALESCE(ing.mes, men.mes)                            AS mes,
-    COALESCE(ing.ingresos_ocasionales, 0)                 AS ingresos_ocasionales,
-    COALESCE(ing.ingresos_mensuales,   0)                 AS ingresos_mensuales,
-    COALESCE(ing.recaudado_ocasionales, 0)                AS recaudado_ocasionales,
-    COALESCE(men.recaudado_mensualidades, 0)              AS recaudado_mensualidades
+    meses.mes,
+    COALESCE(ing.ingresos_ocasionales,    0) AS ingresos_ocasionales,
+    COALESCE(ing.ingresos_mensuales,      0) AS ingresos_mensuales,
+    COALESCE(ing.recaudado_ocasionales,   0) AS recaudado_ocasionales,
+    COALESCE(men.recaudado_mensualidades, 0) AS recaudado_mensualidades
 FROM (
-    -- Agregación 1: por mes de entrada, cuenta ingresos y suma cobros ocasionales
+    -- Lista de meses: unión de los que aparecen en ambas tablas.
+    -- UNION (no UNION ALL) elimina duplicados automáticamente.
+    SELECT DISTINCT DATE_FORMAT(fecha_hora_entrada, '%Y-%m') AS mes
+    FROM ingreso WHERE fecha_hora_salida IS NOT NULL
+    UNION
+    SELECT DISTINCT DATE_FORMAT(fecha_inicio, '%Y-%m') AS mes
+    FROM mensualidad
+) meses
+LEFT JOIN (
     SELECT
-        DATE_FORMAT(fecha_hora_entrada, '%Y-%m')            AS mes,
-        SUM(CASE WHEN es_mensual = 0 THEN 1 ELSE 0 END)     AS ingresos_ocasionales,
-        SUM(CASE WHEN es_mensual = 1 THEN 1 ELSE 0 END)     AS ingresos_mensuales,
+        DATE_FORMAT(fecha_hora_entrada, '%Y-%m')             AS mes,
+        SUM(CASE WHEN es_mensual = 0 THEN 1 ELSE 0 END)      AS ingresos_ocasionales,
+        SUM(CASE WHEN es_mensual = 1 THEN 1 ELSE 0 END)      AS ingresos_mensuales,
         SUM(CASE WHEN es_mensual = 0 THEN monto_cobrado END) AS recaudado_ocasionales
     FROM ingreso
     WHERE fecha_hora_salida IS NOT NULL
     GROUP BY DATE_FORMAT(fecha_hora_entrada, '%Y-%m')
-) ing
+) ing ON ing.mes = meses.mes
 LEFT JOIN (
-    -- Agregación 2: por mes de inicio, suma lo recaudado por mensualidades
     SELECT
         DATE_FORMAT(fecha_inicio, '%Y-%m') AS mes,
         SUM(monto_pagado)                  AS recaudado_mensualidades
     FROM mensualidad
     GROUP BY DATE_FORMAT(fecha_inicio, '%Y-%m')
-) men ON men.mes = ing.mes
-ORDER BY mes;
+) men ON men.mes = meses.mes
+ORDER BY meses.mes;
 
 -- =========================================================================
 -- Consulta 8 — Extra: Ocupación actual y tasa de uso
 -- =========================================================================
 -- Da una visión rápida del estado del parqueadero en este momento.
+-- Nota: `ocupados` (basado en espacio.estado) coincide con la cantidad de
+-- vehículos actualmente dentro (ingresos sin salida) cuando el modelo
+-- está sincronizado, por lo que mostrar ambas sería redundante.
 SELECT
-    (SELECT COUNT(*) FROM espacio)                                   AS total_espacios,
-    (SELECT COUNT(*) FROM espacio WHERE estado = 'LIBRE')            AS libres,
-    (SELECT COUNT(*) FROM espacio WHERE estado = 'OCUPADO')          AS ocupados,
-    (SELECT COUNT(*) FROM espacio WHERE estado = 'RESERVADO')        AS reservados,
-    (SELECT COUNT(*) FROM ingreso WHERE fecha_hora_salida IS NULL)   AS vehiculos_dentro,
+    (SELECT COUNT(*) FROM espacio)                            AS total_espacios,
+    (SELECT COUNT(*) FROM espacio WHERE estado = 'LIBRE')     AS libres,
+    (SELECT COUNT(*) FROM espacio WHERE estado = 'OCUPADO')   AS ocupados,
+    (SELECT COUNT(*) FROM espacio WHERE estado = 'RESERVADO') AS reservados,
     ROUND(
-        (SELECT COUNT(*) FROM ingreso WHERE fecha_hora_salida IS NULL) * 100.0
+        (SELECT COUNT(*) FROM espacio WHERE estado = 'OCUPADO') * 100.0
         / (SELECT COUNT(*) FROM espacio),
         2
-    )                                                                AS porcentaje_ocupacion;
+    )                                                         AS porcentaje_ocupacion;
