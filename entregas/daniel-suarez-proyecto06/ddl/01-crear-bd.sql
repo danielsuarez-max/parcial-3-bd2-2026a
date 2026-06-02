@@ -44,18 +44,37 @@ CREATE TABLE tarifa (
 
 -- =========================================================================
 -- 3) espacio — Los 100 espacios numerados del parqueadero
+--    Los tipos de vehículo que cada espacio acepta se manejan en la tabla
+--    puente espacio_tipo_permitido (relación N-M), porque un mismo espacio
+--    puede permitir varios tipos (ej.: zona grande para Carro/Camioneta/Camión).
 -- =========================================================================
 CREATE TABLE espacio (
-    id_espacio          INT AUTO_INCREMENT,
-    numero              INT          NOT NULL,
-    estado              ENUM('LIBRE','OCUPADO','RESERVADO') NOT NULL DEFAULT 'LIBRE',
-    id_tipo_permitido   INT,
+    id_espacio   INT AUTO_INCREMENT,
+    numero       INT          NOT NULL,
+    estado       ENUM('LIBRE','OCUPADO','RESERVADO') NOT NULL DEFAULT 'LIBRE',
     CONSTRAINT pk_espacio PRIMARY KEY (id_espacio),
     CONSTRAINT uk_espacio_numero UNIQUE (numero),
-    CONSTRAINT fk_espacio_tipo FOREIGN KEY (id_tipo_permitido)
-        REFERENCES tipo_vehiculo (id_tipo)
-        ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT ck_espacio_numero CHECK (numero BETWEEN 1 AND 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================================================================
+-- 3.b) espacio_tipo_permitido — Tabla puente N-M
+--      Qué tipos de vehículo acepta cada espacio.
+--      Reglas reales del parqueadero:
+--        Espacios 1-70  : Carro, Camioneta, Camión
+--        Espacios 71-90 : Moto
+--        Espacios 91-100: Bicicleta
+-- =========================================================================
+CREATE TABLE espacio_tipo_permitido (
+    id_espacio INT NOT NULL,
+    id_tipo    INT NOT NULL,
+    CONSTRAINT pk_espacio_tipo_permitido PRIMARY KEY (id_espacio, id_tipo),
+    CONSTRAINT fk_etp_espacio FOREIGN KEY (id_espacio)
+        REFERENCES espacio (id_espacio)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_etp_tipo FOREIGN KEY (id_tipo)
+        REFERENCES tipo_vehiculo (id_tipo)
+        ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================

@@ -25,6 +25,7 @@ DELETE FROM mensualidad_vehiculo;
 DELETE FROM mensualidad;
 DELETE FROM vehiculo;
 DELETE FROM cliente;
+DELETE FROM espacio_tipo_permitido;
 DELETE FROM espacio;
 DELETE FROM tarifa;
 DELETE FROM tipo_vehiculo;
@@ -61,36 +62,60 @@ INSERT INTO tarifa (id_tipo, valor_hora, vigente_desde, activa) VALUES
 
 -- =========================================================================
 -- 3) espacio — 100 espacios numerados
---    Distribución por tipo permitido:
---      Espacios 1-70  : Carros y Camionetas (id_tipo_permitido NULL = cualquiera)
---      Espacios 71-90 : Motos (id_tipo = 2)
---      Espacios 91-100: Bicicletas (id_tipo = 3)
+--    Los tipos permitidos en cada espacio se insertan más abajo
+--    en espacio_tipo_permitido.
 -- =========================================================================
--- Inserción masiva con un procedimiento simple
-INSERT INTO espacio (numero, estado, id_tipo_permitido) VALUES
-    -- Espacios 1-70: cualquier tipo (NULL = sin restricción)
-    (1,  'LIBRE', NULL), (2,  'LIBRE', NULL), (3,  'LIBRE', NULL), (4,  'LIBRE', NULL), (5,  'LIBRE', NULL),
-    (6,  'LIBRE', NULL), (7,  'LIBRE', NULL), (8,  'LIBRE', NULL), (9,  'LIBRE', NULL), (10, 'LIBRE', NULL),
-    (11, 'LIBRE', NULL), (12, 'LIBRE', NULL), (13, 'LIBRE', NULL), (14, 'LIBRE', NULL), (15, 'LIBRE', NULL),
-    (16, 'LIBRE', NULL), (17, 'LIBRE', NULL), (18, 'LIBRE', NULL), (19, 'LIBRE', NULL), (20, 'LIBRE', NULL),
-    (21, 'LIBRE', NULL), (22, 'LIBRE', NULL), (23, 'LIBRE', NULL), (24, 'LIBRE', NULL), (25, 'LIBRE', NULL),
-    (26, 'LIBRE', NULL), (27, 'LIBRE', NULL), (28, 'LIBRE', NULL), (29, 'LIBRE', NULL), (30, 'LIBRE', NULL),
-    (31, 'LIBRE', NULL), (32, 'LIBRE', NULL), (33, 'LIBRE', NULL), (34, 'LIBRE', NULL), (35, 'LIBRE', NULL),
-    (36, 'LIBRE', NULL), (37, 'LIBRE', NULL), (38, 'LIBRE', NULL), (39, 'LIBRE', NULL), (40, 'LIBRE', NULL),
-    (41, 'LIBRE', NULL), (42, 'LIBRE', NULL), (43, 'LIBRE', NULL), (44, 'LIBRE', NULL), (45, 'LIBRE', NULL),
-    (46, 'LIBRE', NULL), (47, 'LIBRE', NULL), (48, 'LIBRE', NULL), (49, 'LIBRE', NULL), (50, 'LIBRE', NULL),
-    (51, 'LIBRE', NULL), (52, 'LIBRE', NULL), (53, 'LIBRE', NULL), (54, 'LIBRE', NULL), (55, 'LIBRE', NULL),
-    (56, 'LIBRE', NULL), (57, 'LIBRE', NULL), (58, 'LIBRE', NULL), (59, 'LIBRE', NULL), (60, 'LIBRE', NULL),
-    (61, 'LIBRE', NULL), (62, 'LIBRE', NULL), (63, 'LIBRE', NULL), (64, 'LIBRE', NULL), (65, 'LIBRE', NULL),
-    (66, 'LIBRE', NULL), (67, 'LIBRE', NULL), (68, 'LIBRE', NULL), (69, 'LIBRE', NULL), (70, 'LIBRE', NULL),
-    -- Espacios 71-90: solo Motos
-    (71, 'LIBRE', 2), (72, 'LIBRE', 2), (73, 'LIBRE', 2), (74, 'LIBRE', 2), (75, 'LIBRE', 2),
-    (76, 'LIBRE', 2), (77, 'LIBRE', 2), (78, 'LIBRE', 2), (79, 'LIBRE', 2), (80, 'LIBRE', 2),
-    (81, 'LIBRE', 2), (82, 'LIBRE', 2), (83, 'LIBRE', 2), (84, 'LIBRE', 2), (85, 'LIBRE', 2),
-    (86, 'LIBRE', 2), (87, 'LIBRE', 2), (88, 'LIBRE', 2), (89, 'LIBRE', 2), (90, 'LIBRE', 2),
-    -- Espacios 91-100: solo Bicicletas
-    (91, 'LIBRE', 3), (92, 'LIBRE', 3), (93, 'LIBRE', 3), (94, 'LIBRE', 3), (95, 'LIBRE', 3),
-    (96, 'LIBRE', 3), (97, 'LIBRE', 3), (98, 'LIBRE', 3), (99, 'LIBRE', 3), (100,'LIBRE', 3);
+INSERT INTO espacio (numero, estado) VALUES
+    (1,'LIBRE'),(2,'LIBRE'),(3,'LIBRE'),(4,'LIBRE'),(5,'LIBRE'),
+    (6,'LIBRE'),(7,'LIBRE'),(8,'LIBRE'),(9,'LIBRE'),(10,'LIBRE'),
+    (11,'LIBRE'),(12,'LIBRE'),(13,'LIBRE'),(14,'LIBRE'),(15,'LIBRE'),
+    (16,'LIBRE'),(17,'LIBRE'),(18,'LIBRE'),(19,'LIBRE'),(20,'LIBRE'),
+    (21,'LIBRE'),(22,'LIBRE'),(23,'LIBRE'),(24,'LIBRE'),(25,'LIBRE'),
+    (26,'LIBRE'),(27,'LIBRE'),(28,'LIBRE'),(29,'LIBRE'),(30,'LIBRE'),
+    (31,'LIBRE'),(32,'LIBRE'),(33,'LIBRE'),(34,'LIBRE'),(35,'LIBRE'),
+    (36,'LIBRE'),(37,'LIBRE'),(38,'LIBRE'),(39,'LIBRE'),(40,'LIBRE'),
+    (41,'LIBRE'),(42,'LIBRE'),(43,'LIBRE'),(44,'LIBRE'),(45,'LIBRE'),
+    (46,'LIBRE'),(47,'LIBRE'),(48,'LIBRE'),(49,'LIBRE'),(50,'LIBRE'),
+    (51,'LIBRE'),(52,'LIBRE'),(53,'LIBRE'),(54,'LIBRE'),(55,'LIBRE'),
+    (56,'LIBRE'),(57,'LIBRE'),(58,'LIBRE'),(59,'LIBRE'),(60,'LIBRE'),
+    (61,'LIBRE'),(62,'LIBRE'),(63,'LIBRE'),(64,'LIBRE'),(65,'LIBRE'),
+    (66,'LIBRE'),(67,'LIBRE'),(68,'LIBRE'),(69,'LIBRE'),(70,'LIBRE'),
+    (71,'LIBRE'),(72,'LIBRE'),(73,'LIBRE'),(74,'LIBRE'),(75,'LIBRE'),
+    (76,'LIBRE'),(77,'LIBRE'),(78,'LIBRE'),(79,'LIBRE'),(80,'LIBRE'),
+    (81,'LIBRE'),(82,'LIBRE'),(83,'LIBRE'),(84,'LIBRE'),(85,'LIBRE'),
+    (86,'LIBRE'),(87,'LIBRE'),(88,'LIBRE'),(89,'LIBRE'),(90,'LIBRE'),
+    (91,'LIBRE'),(92,'LIBRE'),(93,'LIBRE'),(94,'LIBRE'),(95,'LIBRE'),
+    (96,'LIBRE'),(97,'LIBRE'),(98,'LIBRE'),(99,'LIBRE'),(100,'LIBRE');
+
+-- =========================================================================
+-- 3.b) espacio_tipo_permitido — qué tipos acepta cada espacio
+--      Reglas:
+--        Espacios 1-70  : Carro (1), Camioneta (4), Camión (5)  → 3 filas c/u
+--        Espacios 71-90 : Moto (2)                              → 1 fila c/u
+--        Espacios 91-100: Bicicleta (3)                         → 1 fila c/u
+--      Total esperado: 70*3 + 20*1 + 10*1 = 240 filas.
+-- =========================================================================
+
+-- Espacios 1-70 → permiten Carro, Camioneta, Camión
+-- (lo generamos con CROSS JOIN para no escribir 210 filas a mano)
+INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
+SELECT e.id_espacio, t.id_tipo
+FROM espacio e
+CROSS JOIN tipo_vehiculo t
+WHERE e.numero BETWEEN 1 AND 70
+  AND t.id_tipo IN (1, 4, 5);
+
+-- Espacios 71-90 → solo Moto
+INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
+SELECT id_espacio, 2
+FROM espacio
+WHERE numero BETWEEN 71 AND 90;
+
+-- Espacios 91-100 → solo Bicicleta
+INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
+SELECT id_espacio, 3
+FROM espacio
+WHERE numero BETWEEN 91 AND 100;
 
 -- =========================================================================
 -- 4) cliente — 12 clientes

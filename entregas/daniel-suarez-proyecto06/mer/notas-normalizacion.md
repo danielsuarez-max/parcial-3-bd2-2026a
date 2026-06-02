@@ -5,7 +5,7 @@ la exigencia mínima del parcial.
 
 ## 1. Resumen del modelo
 
-El modelo cuenta con 8 entidades:
+El modelo cuenta con 9 entidades:
 
 | # | Entidad | Tipo | PK |
 |---|---|---|---|
@@ -14,9 +14,10 @@ El modelo cuenta con 8 entidades:
 | 3 | `vehiculo` | Maestro | `placa` |
 | 4 | `cliente` | Maestro | `id_cliente` |
 | 5 | `espacio` | Catálogo | `id_espacio` |
-| 6 | `mensualidad` | Transaccional | `id_mensualidad` |
-| 7 | `mensualidad_vehiculo` | Tabla puente N–M | `(id_mensualidad, placa)` |
-| 8 | `ingreso` | Transaccional | `id_ingreso` |
+| 6 | `espacio_tipo_permitido` | Tabla puente N–M | `(id_espacio, id_tipo)` |
+| 7 | `mensualidad` | Transaccional | `id_mensualidad` |
+| 8 | `mensualidad_vehiculo` | Tabla puente N–M | `(id_mensualidad, placa)` |
+| 9 | `ingreso` | Transaccional | `id_ingreso` |
 
 ## 2. Verificación de las formas normales
 
@@ -36,9 +37,11 @@ Toda nuestra tabla cumple 1FN porque:
 **Regla:** estando en 1FN, ningún atributo no-clave depende parcialmente de
 una clave compuesta. (Solo aplica a tablas con PK compuesta.)
 
-La única tabla con PK compuesta es `mensualidad_vehiculo`, cuya PK es
-`(id_mensualidad, placa)`. Esta tabla **no tiene atributos adicionales** más
-allá de la propia clave, por lo que cumple 2FN trivialmente.
+Las tablas con PK compuesta son `mensualidad_vehiculo` (PK
+`(id_mensualidad, placa)`) y `espacio_tipo_permitido` (PK
+`(id_espacio, id_tipo)`). **Ninguna de las dos tiene atributos
+adicionales** más allá de la propia clave, por lo que cumplen 2FN
+trivialmente.
 
 Las demás tablas tienen PK simple, por lo que 2FN se cumple por definición.
 
@@ -55,7 +58,8 @@ Verificación entidad por entidad:
 | `tarifa` | `id_tipo`, `valor_hora`, `vigente_desde`, `activa` | Solo de `id_tarifa` | ✅ |
 | `vehiculo` | `id_tipo`, `color`, `marca` | Solo de `placa` | ✅ |
 | `cliente` | `documento`, `nombre_completo`, `telefono`, `email` | Solo de `id_cliente` | ✅ |
-| `espacio` | `numero`, `estado`, `id_tipo_permitido` | Solo de `id_espacio` | ✅ |
+| `espacio` | `numero`, `estado` | Solo de `id_espacio` | ✅ |
+| `espacio_tipo_permitido` | (ninguno) | — | ✅ |
 | `mensualidad` | `id_cliente`, `id_espacio`, `fecha_inicio`, `fecha_fin`, `monto_pagado`, `estado` | Solo de `id_mensualidad` | ✅ |
 | `mensualidad_vehiculo` | (ninguno) | — | ✅ |
 | `ingreso` | `placa`, `id_espacio`, `fecha_hora_entrada`, `fecha_hora_salida`, `es_mensual`, `id_mensualidad`, `id_tarifa`, `monto_cobrado` | Solo de `id_ingreso` | ✅ |
@@ -86,6 +90,12 @@ decisión consciente de modelado, no una redundancia accidental.
 
 - **Tabla puente `mensualidad_vehiculo`**: resuelve la relación N–M entre
   mensualidades y vehículos sin violar 1FN.
+
+- **Tabla puente `espacio_tipo_permitido`**: un espacio puede aceptar
+  varios tipos (los espacios grandes aceptan Carro, Camioneta y Camión)
+  y un mismo tipo puede caber en muchos espacios. Esta segunda relación
+  N–M se modela igual que `mensualidad_vehiculo`: con una tabla puente
+  de PK compuesta y sin atributos adicionales.
 
 - **Clientes ocasionales no se modelan**: la categoría "ocasional" no es
   una entidad con datos propios, sino una clasificación que surge de no
