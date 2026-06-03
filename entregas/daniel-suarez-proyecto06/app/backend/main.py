@@ -3,6 +3,8 @@ main.py — Capa de API (FastAPI).
 Define los endpoints HTTP que el frontend (Angular) consumirá.
 Cada endpoint ejecuta una consulta en la BD y devuelve JSON.
 """
+import re
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
@@ -233,6 +235,35 @@ class EntradaIn(BaseModel):
         return v
 
 
+# Formato de placa esperado según el tipo de vehículo (estándar colombiano).
+# nombre_tipo -> (expresión regular, descripción legible, ejemplo)
+FORMATOS_PLACA = {
+    "Carro":     (r"^[A-Z]{3}[0-9]{3}$", "3 letras y 3 números", "ABC123"),
+    "Camioneta": (r"^[A-Z]{3}[0-9]{3}$", "3 letras y 3 números", "ABC123"),
+    "Camión":    (r"^[A-Z]{3}[0-9]{3}$", "3 letras y 3 números", "ABC123"),
+    "Moto":      (r"^[A-Z]{3}[0-9]{2}[A-Z]$", "3 letras, 2 números y 1 letra", "ABC12D"),
+    "Bicicleta": (r"^BIC[0-9]{3}$", "código interno BIC + 3 números (la bici no lleva placa)", "BIC001"),
+}
+
+
+def validar_formato_placa(placa: str, nombre_tipo: str) -> None:
+    """
+    Verifica que la placa tenga el formato correcto para su tipo.
+    Evita registros sin sentido (placa de carro en una moto, placa en una bici, etc.).
+    Si el tipo no tiene una regla definida, no se valida el formato.
+    """
+    regla = FORMATOS_PLACA.get(nombre_tipo)
+    if regla is None:
+        return
+    patron, descripcion, ejemplo = regla
+    if not re.match(patron, placa):
+        raise HTTPException(
+            status_code=422,
+            detail=f"La placa '{placa}' no tiene el formato válido para {nombre_tipo}: "
+                   f"{descripcion} (ej. {ejemplo}).",
+        )
+
+
 @app.post("/ingresos")
 def registrar_entrada(entrada: EntradaIn):
     """
@@ -286,7 +317,8 @@ def registrar_entrada(entrada: EntradaIn):
                 )
             id_tipo_efectivo = veh["id_tipo"]
         else:
-            # Primera vez que vemos esta placa -> la creamos
+            # Primera vez que vemos esta placa -> validamos su formato y la creamos
+            validar_formato_placa(entrada.placa, nombre_tipo)
             cur.execute(
                 "INSERT INTO vehiculo (placa, id_tipo, color, marca) VALUES (%s, %s, %s, %s)",
                 (entrada.placa, entrada.id_tipo, entrada.color, entrada.marca),
@@ -381,6 +413,89 @@ def registrar_entrada(entrada: EntradaIn):
         "id_espacio": id_espacio,
         "numero_espacio": numero_espacio,
     }
+
+
+# ============================================================
+#  RF2 — Registrar la SALIDA de un vehículo + cobro   (POST)
+# ============================================================
+
+@app.post("/ingresos/{id_ingreso}/salida")
+def registrar_salida(id_ingreso: int):
+    """
+    RF2 — Cierra un ingreso abierto y calcula el cobro.
+      - Ocasional: monto = horas (redondeadas hacia arriba) × tarifa vigente del ingreso.
+      - Mensual: sin cobro por hora (ya pagó la mensualidad).
+    Libera el espacio: ocasional -> LIBRE; mensual -> RESERVADO (sigue siendo su cupo).
+    """
+    with transaccion() as cur:
+        # 1) Buscar el ingreso y validar que esté ABIERTO (sin salida)
+        cur.execute(
+            """
+            SELECT id_ingreso, placa, id_espacio, es_mensual, id_tarifa,
+                   fecha_hora_entrada, fecha_hora_salida
+            FROM ingreso WHERE id_ingreso = %s
+            """,
+            (id_ingreso,),
+        )
+        ing = cur.fetchone()
+        if not ing:
+            raise HTTPException(status_code=404, detail=f"No existe un ingreso con id {id_ingreso}.")
+        if ing["fecha_hora_salida"] is not None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"El ingreso {id_ingreso} ya tiene una salida registrada.",
+            )
+
+        if ing["es_mensual"]:
+            # --- MENSUAL: sin cobro por hora; el cupo vuelve a RESERVADO ---
+            cur.execute("UPDATE ingreso SET fecha_hora_salida = NOW() WHERE id_ingreso = %s", (id_ingreso,))
+            cur.execute("UPDATE espacio SET estado = 'RESERVADO' WHERE id_espacio = %s", (ing["id_espacio"],))
+            modalidad = "MENSUAL"
+        else:
+            # --- OCASIONAL: cobro = CEIL(minutos / 60) × valor_hora de su tarifa ---
+            cur.execute("SELECT valor_hora FROM tarifa WHERE id_tarifa = %s", (ing["id_tarifa"],))
+            valor_hora = cur.fetchone()["valor_hora"]
+            # NOW() es constante dentro de UNA sentencia: la hora de salida y el
+            # cálculo del cobro usan exactamente el mismo instante.
+            cur.execute(
+                """
+                UPDATE ingreso
+                SET fecha_hora_salida = NOW(),
+                    monto_cobrado = CEIL(TIMESTAMPDIFF(MINUTE, fecha_hora_entrada, NOW()) / 60) * %s
+                WHERE id_ingreso = %s
+                """,
+                (valor_hora, id_ingreso),
+            )
+            cur.execute("UPDATE espacio SET estado = 'LIBRE' WHERE id_espacio = %s", (ing["id_espacio"],))
+            modalidad = "OCASIONAL"
+
+        # 2) Leer el resultado final para devolver un resumen claro
+        cur.execute(
+            """
+            SELECT
+                TIMESTAMPDIFF(MINUTE, fecha_hora_entrada, fecha_hora_salida)      AS minutos,
+                CEIL(TIMESTAMPDIFF(MINUTE, fecha_hora_entrada, fecha_hora_salida) / 60) AS horas,
+                monto_cobrado
+            FROM ingreso WHERE id_ingreso = %s
+            """,
+            (id_ingreso,),
+        )
+        r = cur.fetchone()
+
+    respuesta = {
+        "mensaje": "Salida registrada",
+        "id_ingreso": id_ingreso,
+        "placa": ing["placa"],
+        "modalidad": modalidad,
+        "minutos_dentro": r["minutos"],
+    }
+    if modalidad == "OCASIONAL":
+        respuesta["horas_cobradas"] = int(r["horas"])
+        respuesta["monto_cobrado"] = float(r["monto_cobrado"])
+    else:
+        respuesta["monto_cobrado"] = None
+        respuesta["nota"] = "Sin cargo por hora: incluido en la mensualidad."
+    return respuesta
 
 
 

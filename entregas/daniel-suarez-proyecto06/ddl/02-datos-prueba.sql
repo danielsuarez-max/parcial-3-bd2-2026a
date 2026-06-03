@@ -141,35 +141,35 @@ INSERT INTO cliente (documento, nombre_completo, telefono, email) VALUES
 INSERT INTO vehiculo (placa, id_tipo, color, marca) VALUES
     -- Vehículos de clientes mensuales (carros y motos)
     ('ABC123', 1, 'Rojo',     'Mazda'),     -- Cliente 1 (Ana)
-    ('ABC124', 2, 'Negro',    'Yamaha'),    -- Cliente 1 (Ana, segundo vehículo)
+    ('ABC12D', 2, 'Negro',    'Yamaha'),    -- Cliente 1 (Ana, segundo vehículo)
     ('DEF456', 1, 'Blanco',   'Chevrolet'), -- Cliente 2 (Carlos)
     ('GHI789', 1, 'Gris',     'Renault'),   -- Cliente 3 (Lucía)
     ('JKL012', 4, 'Azul',     'Toyota'),    -- Cliente 4 (Jorge - camioneta)
     ('MNO345', 1, 'Plata',    'Hyundai'),   -- Cliente 5 (María)
-    ('PQR678', 2, 'Rojo',     'Honda'),     -- Cliente 6 (Diego - moto)
+    ('PQR67D', 2, 'Rojo',     'Honda'),     -- Cliente 6 (Diego - moto)
     ('STU901', 1, 'Negro',    'Kia'),       -- Cliente 7 (Valentina)
-    ('STU902', 2, 'Azul',     'Suzuki'),    -- Cliente 7 (Valentina, segundo)
+    ('STU90D', 2, 'Azul',     'Suzuki'),    -- Cliente 7 (Valentina, segundo)
     ('VWX234', 1, 'Blanco',   'Nissan'),    -- Cliente 8 (Sebastián)
     ('YZA567', 4, 'Negro',    'Ford'),      -- Cliente 9 (Isabella - camioneta)
     ('BCD890', 1, 'Verde',    'Volkswagen'), -- Cliente 10 (Andrés)
-    ('EFG123', 2, 'Blanco',   'Bajaj'),     -- Cliente 11 (Camila - moto)
+    ('EFG12D', 2, 'Blanco',   'Bajaj'),     -- Cliente 11 (Camila - moto)
     ('HIJ456', 1, 'Gris',     'Mazda'),     -- Cliente 12 (Mateo)
     -- Vehículos ocasionales (los usaremos en ingresos sin mensualidad)
     ('OCC001', 1, 'Rojo',     'Chevrolet'),
     ('OCC002', 1, 'Negro',    'Renault'),
-    ('OCC003', 2, 'Azul',     'Yamaha'),
+    ('OCC03D', 2, 'Azul',     'Yamaha'),
     ('OCC004', 1, 'Blanco',   'Toyota'),
-    ('OCC005', 2, 'Negro',    'Honda'),
+    ('OCC05D', 2, 'Negro',    'Honda'),
     ('OCC006', 1, 'Plata',    'Hyundai'),
     ('OCC007', 4, 'Rojo',     'Ford'),
-    ('OCC008', 3, 'Azul',     'GW'),
+    ('BIC008', 3, 'Azul',     'GW'),
     ('OCC009', 1, 'Verde',    'Mazda'),
-    ('OCC010', 2, 'Rojo',     'Suzuki'),
+    ('OCC10D', 2, 'Rojo',     'Suzuki'),
     ('OCC011', 1, 'Negro',    'Nissan'),
     ('OCC012', 5, 'Blanco',   'Mercedes'),
     ('OCC013', 1, 'Gris',     'Kia'),
-    ('OCC014', 2, 'Blanco',   'Bajaj'),
-    ('OCC015', 3, 'Negro',    'Trek');
+    ('OCC14D', 2, 'Blanco',   'Bajaj'),
+    ('BIC015', 3, 'Negro',    'Trek');
 
 -- =========================================================================
 -- 6) mensualidad — 12 activas + 3 vencidas
@@ -202,20 +202,20 @@ INSERT INTO mensualidad (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_
 -- =========================================================================
 INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES
     -- Mensualidades ACTIVAS
-    ( 1, 'ABC123'),  ( 1, 'ABC124'),    -- Ana: carro + moto
+    ( 1, 'ABC123'),  ( 1, 'ABC12D'),    -- Ana: carro + moto
     ( 2, 'DEF456'),                     -- Carlos: solo carro
     ( 3, 'GHI789'),                     -- Lucía
     ( 4, 'JKL012'),                     -- Jorge (camioneta)
     ( 5, 'MNO345'),                     -- María
-    ( 6, 'PQR678'),                     -- Diego (moto)
-    ( 7, 'STU901'),  ( 7, 'STU902'),    -- Valentina: carro + moto
+    ( 6, 'PQR67D'),                     -- Diego (moto)
+    ( 7, 'STU901'),  ( 7, 'STU90D'),    -- Valentina: carro + moto
     ( 8, 'VWX234'),                     -- Sebastián
     ( 9, 'YZA567'),                     -- Isabella (camioneta)
     (10, 'BCD890'),                     -- Andrés
-    (11, 'EFG123'),                     -- Camila (moto)
+    (11, 'EFG12D'),                     -- Camila (moto)
     (12, 'HIJ456'),                     -- Mateo
     -- Mensualidades VENCIDAS (mismos vehículos cubiertos en el período pasado)
-    (13, 'ABC123'),  (13, 'ABC124'),
+    (13, 'ABC123'),  (13, 'ABC12D'),
     (14, 'GHI789'),
     (15, 'MNO345');
 
@@ -237,7 +237,7 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
     ('ABC123',  1, '2026-05-02 07:30:00', '2026-05-02 17:45:00', 1,  1, NULL, 0),
     ('ABC123',  1, '2026-05-05 08:00:00', '2026-05-05 18:30:00', 1,  1, NULL, 0),
     ('ABC123',  1, '2026-05-10 07:15:00', '2026-05-10 19:00:00', 1,  1, NULL, 0),
-    ('ABC124', 71, '2026-05-12 09:00:00', '2026-05-12 12:30:00', 1,  1, NULL, 0),
+    ('ABC12D', 71, '2026-05-12 09:00:00', '2026-05-12 12:30:00', 1,  1, NULL, 0),
     ('DEF456',  2, '2026-05-16 07:45:00', '2026-05-16 17:30:00', 1,  2, NULL, 0),
     ('DEF456',  2, '2026-05-18 08:30:00', '2026-05-18 18:00:00', 1,  2, NULL, 0),
     ('DEF456',  2, '2026-05-20 07:00:00', '2026-05-20 16:45:00', 1,  2, NULL, 0),
@@ -249,18 +249,18 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
     ('MNO345',  5, '2026-05-04 07:15:00', '2026-05-04 18:45:00', 1,  5, NULL, 0),
     ('MNO345',  5, '2026-05-08 07:30:00', '2026-05-08 17:00:00', 1,  5, NULL, 0),
     ('MNO345',  5, '2026-05-21 08:00:00', '2026-05-21 19:00:00', 1,  5, NULL, 0),
-    ('PQR678', 71, '2026-05-07 09:00:00', '2026-05-07 13:00:00', 1,  6, NULL, 0),
-    ('PQR678', 71, '2026-05-13 10:30:00', '2026-05-13 16:30:00', 1,  6, NULL, 0),
+    ('PQR67D', 71, '2026-05-07 09:00:00', '2026-05-07 13:00:00', 1,  6, NULL, 0),
+    ('PQR67D', 71, '2026-05-13 10:30:00', '2026-05-13 16:30:00', 1,  6, NULL, 0),
     ('STU901',  6, '2026-05-09 07:45:00', '2026-05-09 18:15:00', 1,  7, NULL, 0),
-    ('STU902', 72, '2026-05-15 09:00:00', '2026-05-15 12:00:00', 1,  7, NULL, 0),
+    ('STU90D', 72, '2026-05-15 09:00:00', '2026-05-15 12:00:00', 1,  7, NULL, 0),
     ('VWX234',  7, '2026-05-22 08:00:00', '2026-05-22 17:30:00', 1,  8, NULL, 0),
     ('VWX234',  7, '2026-05-26 07:30:00', '2026-05-26 18:00:00', 1,  8, NULL, 0),
     ('YZA567',  8, '2026-05-17 07:00:00', '2026-05-17 18:30:00', 1,  9, NULL, 0),
     ('YZA567',  8, '2026-05-23 08:15:00', '2026-05-23 17:45:00', 1,  9, NULL, 0),
     ('BCD890',  9, '2026-05-25 07:30:00', '2026-05-25 18:00:00', 1, 10, NULL, 0),
-    ('EFG123', 72, '2026-05-02 10:00:00', '2026-05-02 14:30:00', 1, 11, NULL, 0),
-    ('EFG123', 72, '2026-05-11 09:30:00', '2026-05-11 13:00:00', 1, 11, NULL, 0),
-    ('EFG123', 72, '2026-05-24 11:00:00', '2026-05-24 15:30:00', 1, 11, NULL, 0),
+    ('EFG12D', 72, '2026-05-02 10:00:00', '2026-05-02 14:30:00', 1, 11, NULL, 0),
+    ('EFG12D', 72, '2026-05-11 09:30:00', '2026-05-11 13:00:00', 1, 11, NULL, 0),
+    ('EFG12D', 72, '2026-05-24 11:00:00', '2026-05-24 15:30:00', 1, 11, NULL, 0),
     ('HIJ456', 10, '2026-05-27 08:00:00', '2026-05-27 17:30:00', 1, 12, NULL, 0),
     ('HIJ456', 10, '2026-05-28 07:30:00', '2026-05-28 18:30:00', 1, 12, NULL, 0),
     ('ABC123',  1, '2026-05-29 07:45:00', '2026-05-29 18:00:00', 1,  1, NULL, 0);
@@ -273,22 +273,22 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
     -- 20 ocasionales cerrados, repartidos en mayo
     ('OCC001', 15, '2026-05-02 10:00:00', '2026-05-02 12:30:00', 0, NULL, 1, 15000.00),  -- 3h x 5000
     ('OCC002', 16, '2026-05-03 14:00:00', '2026-05-03 16:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000
-    ('OCC003', 73, '2026-05-04 09:00:00', '2026-05-04 11:30:00', 0, NULL, 2,  7500.00),  -- 3h x 2500
+    ('OCC03D', 73, '2026-05-04 09:00:00', '2026-05-04 11:30:00', 0, NULL, 2,  7500.00),  -- 3h x 2500
     ('OCC004', 17, '2026-05-05 15:30:00', '2026-05-05 19:00:00', 0, NULL, 1, 20000.00),  -- 4h x 5000
-    ('OCC005', 74, '2026-05-07 08:00:00', '2026-05-07 13:30:00', 0, NULL, 2, 15000.00),  -- 6h x 2500
+    ('OCC05D', 74, '2026-05-07 08:00:00', '2026-05-07 13:30:00', 0, NULL, 2, 15000.00),  -- 6h x 2500
     ('OCC006', 18, '2026-05-09 11:00:00', '2026-05-09 13:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000
     ('OCC007', 19, '2026-05-10 09:30:00', '2026-05-10 18:00:00', 0, NULL, 4, 58500.00),  -- 9h x 6500
-    ('OCC008', 91, '2026-05-11 14:00:00', '2026-05-11 16:00:00', 0, NULL, 3,  2000.00),  -- 2h x 1000
+    ('BIC008', 91, '2026-05-11 14:00:00', '2026-05-11 16:00:00', 0, NULL, 3,  2000.00),  -- 2h x 1000
     ('OCC009', 20, '2026-05-13 07:30:00', '2026-05-13 12:15:00', 0, NULL, 1, 25000.00),  -- 5h x 5000
-    ('OCC010', 75, '2026-05-14 10:00:00', '2026-05-14 14:00:00', 0, NULL, 2, 10000.00),  -- 4h x 2500
+    ('OCC10D', 75, '2026-05-14 10:00:00', '2026-05-14 14:00:00', 0, NULL, 2, 10000.00),  -- 4h x 2500
     ('OCC011', 21, '2026-05-16 16:00:00', '2026-05-16 19:30:00', 0, NULL, 1, 20000.00),  -- 4h x 5000
     ('OCC012', 22, '2026-05-18 06:00:00', '2026-05-18 14:00:00', 0, NULL, 5, 72000.00),  -- 8h x 9000
     ('OCC013', 23, '2026-05-19 13:30:00', '2026-05-19 18:00:00', 0, NULL, 1, 25000.00),  -- 5h x 5000
-    ('OCC014', 76, '2026-05-21 10:00:00', '2026-05-21 12:30:00', 0, NULL, 2,  7500.00),  -- 3h x 2500
-    ('OCC015', 92, '2026-05-22 15:00:00', '2026-05-22 16:00:00', 0, NULL, 3,  1000.00),  -- 1h x 1000
+    ('OCC14D', 76, '2026-05-21 10:00:00', '2026-05-21 12:30:00', 0, NULL, 2,  7500.00),  -- 3h x 2500
+    ('BIC015', 92, '2026-05-22 15:00:00', '2026-05-22 16:00:00', 0, NULL, 3,  1000.00),  -- 1h x 1000
     ('OCC001', 24, '2026-05-23 09:30:00', '2026-05-23 11:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000 (rep)
-    ('OCC003', 77, '2026-05-25 13:00:00', '2026-05-25 17:30:00', 0, NULL, 2, 12500.00),  -- 5h x 2500
-    ('OCC005', 78, '2026-05-26 10:00:00', '2026-05-26 12:00:00', 0, NULL, 2,  5000.00),  -- 2h x 2500
+    ('OCC03D', 77, '2026-05-25 13:00:00', '2026-05-25 17:30:00', 0, NULL, 2, 12500.00),  -- 5h x 2500
+    ('OCC05D', 78, '2026-05-26 10:00:00', '2026-05-26 12:00:00', 0, NULL, 2,  5000.00),  -- 2h x 2500
     ('OCC007', 25, '2026-05-27 14:00:00', '2026-05-27 19:00:00', 0, NULL, 4, 32500.00),  -- 5h x 6500
     ('OCC009', 26, '2026-05-28 11:30:00', '2026-05-28 14:30:00', 0, NULL, 1, 15000.00);  -- 3h x 5000
 -- 20 ingresos ocasionales cerrados → total 50 cerrados
@@ -301,13 +301,13 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
     -- Mensuales actualmente dentro
     ('DEF456',  2, '2026-05-30 07:30:00', NULL, 1,  2, NULL, NULL),
     ('JKL012',  4, '2026-05-30 08:15:00', NULL, 1,  4, NULL, NULL),
-    ('PQR678', 71, '2026-05-30 09:00:00', NULL, 1,  6, NULL, NULL),
+    ('PQR67D', 71, '2026-05-30 09:00:00', NULL, 1,  6, NULL, NULL),
     ('VWX234',  7, '2026-05-30 07:45:00', NULL, 1,  8, NULL, NULL),
     -- Ocasionales actualmente dentro
     ('OCC002', 27, '2026-05-30 09:30:00', NULL, 0, NULL, 1, NULL),
     ('OCC004', 28, '2026-05-30 10:00:00', NULL, 0, NULL, 1, NULL),
     ('OCC006', 79, '2026-05-30 10:15:00', NULL, 0, NULL, 2, NULL),
-    ('OCC008', 93, '2026-05-30 10:30:00', NULL, 0, NULL, 3, NULL),
+    ('BIC008', 93, '2026-05-30 10:30:00', NULL, 0, NULL, 3, NULL),
     ('OCC011', 29, '2026-05-30 11:00:00', NULL, 0, NULL, 1, NULL),
     ('OCC013', 30, '2026-05-30 11:30:00', NULL, 0, NULL, 1, NULL);
 
