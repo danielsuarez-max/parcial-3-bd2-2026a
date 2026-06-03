@@ -4,6 +4,7 @@ Centraliza la conexión a MySQL para que el resto del backend
 no tenga que repetir credenciales ni lógica de conexión.
 """
 import os
+from contextlib import contextmanager
 from dotenv import load_dotenv
 import mysql.connector
 
@@ -38,6 +39,28 @@ def run_query(sql, params=None):
     finally:
         cursor.close()      # cerramos el cursor pase lo que pase...
         conn.close()        # ...y la conexión, para no dejar recursos abiertos
+
+
+@contextmanager
+def transaccion():
+    """
+    Context manager para operaciones de ESCRITURA (INSERT/UPDATE/DELETE).
+    Entrega un cursor y, al salir del bloque `with`:
+      - hace commit()   si todo salió bien,
+      - hace rollback() si ocurrió cualquier error (deshace TODO),
+    cerrando siempre conexión y cursor. Garantiza atomicidad ("todo o nada").
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        yield cursor
+        conn.commit()       # llegamos al final sin errores -> confirmamos
+    except Exception:
+        conn.rollback()     # algo falló -> deshacemos todo lo de esta transacción
+        raise               # y propagamos el error para que FastAPI lo reporte
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # Si ejecutas "python db.py" directamente, prueba la conexión:

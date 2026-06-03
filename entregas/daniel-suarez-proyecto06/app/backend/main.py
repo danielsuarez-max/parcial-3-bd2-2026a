@@ -3,10 +3,11 @@ main.py — Capa de API (FastAPI).
 Define los endpoints HTTP que el frontend (Angular) consumirá.
 Cada endpoint ejecuta una consulta en la BD y devuelve JSON.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from db import run_query   # reutilizamos la capa de datos (db.py)
+from db import run_query, transaccion   # capa de datos (db.py)
 
 # Crea la aplicación. title/description salen en la documentación Swagger.
 app = FastAPI(
@@ -23,6 +24,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def con_total(filas):
+    """Envuelve una lista en {total, datos}: así el frontend recibe de una
+    vez cuántos registros hay, sin tener que contarlos."""
+    return {"total": len(filas), "datos": filas}
 
 
 @app.get("/")
@@ -56,7 +62,7 @@ def vehiculos_dentro():
         WHERE i.fecha_hora_salida IS NULL
         ORDER BY i.fecha_hora_entrada
     """
-    return run_query(sql)
+    return con_total(run_query(sql))
 
 # ============================================================
 #  CATÁLOGOS (los usará el frontend para llenar menús/listas)
@@ -65,7 +71,7 @@ def vehiculos_dentro():
 @app.get("/tipos")
 def tipos_vehiculo():
     """Catálogo de tipos de vehículo (Carro, Moto, Bicicleta...)."""
-    return run_query("SELECT id_tipo, nombre, descripcion FROM tipo_vehiculo ORDER BY id_tipo")
+    return con_total(run_query("SELECT id_tipo, nombre, descripcion FROM tipo_vehiculo ORDER BY id_tipo"))
 
 
 @app.get("/tarifas")
@@ -79,7 +85,7 @@ def tarifas():
         WHERE t.activa = 1
         ORDER BY tv.nombre
     """
-    return run_query(sql)
+    return con_total(run_query(sql))
 
 
 # ============================================================
@@ -118,7 +124,7 @@ def reporte_dia():
         GROUP BY DATE(i.fecha_hora_entrada)
         ORDER BY dia
     """
-    return run_query(sql)
+    return con_total(run_query(sql))
 
 
 @app.get("/reportes/mes")
@@ -157,7 +163,7 @@ def reporte_mes():
         ) men ON men.mes = meses.mes
         ORDER BY meses.mes
     """
-    return run_query(sql)
+    return con_total(run_query(sql))
 
 
 # ============================================================
@@ -178,7 +184,7 @@ def espacios_libres(id_tipo: int):
           AND etp.id_tipo = %s
         ORDER BY e.numero
     """
-    return run_query(sql, (id_tipo,))
+    return con_total(run_query(sql, (id_tipo,)))
 
 
 # ============================================================
@@ -202,7 +208,117 @@ def mensualidad_de_placa(placa: str):
           AND m.estado = 'ACTIVA'
           AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
     """
-    return run_query(sql, (placa,))
+    return con_total(run_query(sql, (placa,)))
+
+
+# ============================================================
+#  RF1 — Registrar la ENTRADA de un vehículo   (POST = escribe)
+# ============================================================
+
+class EntradaIn(BaseModel):
+    """Datos que el operador envía para registrar una entrada."""
+    placa: str
+    id_tipo: int        # tipo del vehículo (para crearlo si es su primera vez)
+    id_espacio: int     # espacio elegido (se ignora si el vehículo es mensual)
+
+
+@app.post("/ingresos")
+def registrar_entrada(entrada: EntradaIn):
+    """
+    RF1 — Registra la entrada de un vehículo.
+      - Si la placa tiene mensualidad activa -> entra a SU espacio reservado, sin cobro.
+      - Si no -> es ocasional: valida que el espacio esté libre y sea compatible,
+        y le asigna la tarifa vigente de su tipo.
+    Todo ocurre dentro de una transacción: o se hace completo, o no se hace nada.
+    """
+    with transaccion() as cur:
+        # 1) ¿Ya está dentro? (evita registrar dos entradas abiertas de la misma placa)
+        cur.execute(
+            "SELECT id_ingreso FROM ingreso WHERE placa = %s AND fecha_hora_salida IS NULL",
+            (entrada.placa,),
+        )
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="Ese vehículo ya está dentro.")
+
+        # 2) Crear el vehículo si es la primera vez que lo vemos
+        cur.execute("SELECT placa FROM vehiculo WHERE placa = %s", (entrada.placa,))
+        if not cur.fetchone():
+            cur.execute(
+                "INSERT INTO vehiculo (placa, id_tipo) VALUES (%s, %s)",
+                (entrada.placa, entrada.id_tipo),
+            )
+
+        # 3) ¿Tiene mensualidad activa HOY?
+        cur.execute(
+            """
+            SELECT m.id_mensualidad, m.id_espacio
+            FROM mensualidad m
+            JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
+            WHERE mv.placa = %s AND m.estado = 'ACTIVA'
+              AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
+            """,
+            (entrada.placa,),
+        )
+        mensualidad = cur.fetchone()
+
+        if mensualidad:
+            # --- MENSUAL: entra a su espacio reservado, SIN tarifa por hora ---
+            id_espacio = mensualidad["id_espacio"]
+            cur.execute(
+                """
+                INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, es_mensual, id_mensualidad)
+                VALUES (%s, %s, NOW(), 1, %s)
+                """,
+                (entrada.placa, id_espacio, mensualidad["id_mensualidad"]),
+            )
+            id_ingreso = cur.lastrowid
+            cur.execute("UPDATE espacio SET estado = 'OCUPADO' WHERE id_espacio = %s", (id_espacio,))
+            modalidad = "MENSUAL"
+        else:
+            # --- OCASIONAL: validar disponibilidad (RF5) y asignar tarifa ---
+            cur.execute(
+                """
+                SELECT 1
+                FROM espacio e
+                JOIN espacio_tipo_permitido etp ON etp.id_espacio = e.id_espacio
+                WHERE e.id_espacio = %s AND e.estado = 'LIBRE' AND etp.id_tipo = %s
+                """,
+                (entrada.id_espacio, entrada.id_tipo),
+            )
+            if not cur.fetchone():
+                raise HTTPException(
+                    status_code=409,
+                    detail="El espacio no está libre o no admite ese tipo de vehículo.",
+                )
+
+            cur.execute(
+                "SELECT id_tarifa FROM tarifa WHERE id_tipo = %s AND activa = 1 LIMIT 1",
+                (entrada.id_tipo,),
+            )
+            tarifa = cur.fetchone()
+            if not tarifa:
+                raise HTTPException(status_code=400, detail="No hay tarifa activa para ese tipo de vehículo.")
+
+            cur.execute(
+                """
+                INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, es_mensual, id_tarifa)
+                VALUES (%s, %s, NOW(), 0, %s)
+                """,
+                (entrada.placa, entrada.id_espacio, tarifa["id_tarifa"]),
+            )
+            id_ingreso = cur.lastrowid
+            cur.execute("UPDATE espacio SET estado = 'OCUPADO' WHERE id_espacio = %s", (entrada.id_espacio,))
+            id_espacio = entrada.id_espacio
+            modalidad = "OCASIONAL"
+
+    # Si llegamos aquí, la transacción se confirmó (commit) sin errores.
+    return {
+        "mensaje": "Entrada registrada",
+        "id_ingreso": id_ingreso,
+        "placa": entrada.placa,
+        "modalidad": modalidad,
+        "id_espacio": id_espacio,
+    }
 
 
 
