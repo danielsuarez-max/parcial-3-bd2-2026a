@@ -5,7 +5,7 @@ Cada endpoint ejecuta una consulta en la BD y devuelve JSON.
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from db import run_query, transaccion   # capa de datos (db.py)
 
@@ -218,8 +218,19 @@ def mensualidad_de_placa(placa: str):
 class EntradaIn(BaseModel):
     """Datos que el operador envía para registrar una entrada."""
     placa: str
-    id_tipo: int        # tipo del vehículo (para crearlo si es su primera vez)
-    id_espacio: int     # espacio elegido (se ignora si el vehículo es mensual)
+    id_tipo: int              # tipo del vehículo (para crearlo si es su primera vez)
+    id_espacio: int           # espacio elegido (se ignora si el vehículo es mensual)
+    color: str | None = None  # opcional: solo se usa al crear el vehículo por 1ra vez
+    marca: str | None = None  # opcional: idem
+
+    @field_validator("placa")
+    @classmethod
+    def normalizar_placa(cls, v: str) -> str:
+        """La placa SIEMPRE se guarda en MAYÚSCULAS y sin espacios sobrantes."""
+        v = v.strip().upper()
+        if not v:
+            raise ValueError("La placa no puede estar vacía.")
+        return v
 
 
 @app.post("/ingresos")
@@ -232,23 +243,57 @@ def registrar_entrada(entrada: EntradaIn):
     Todo ocurre dentro de una transacción: o se hace completo, o no se hace nada.
     """
     with transaccion() as cur:
-        # 1) ¿Ya está dentro? (evita registrar dos entradas abiertas de la misma placa)
+        # 1) El TIPO de vehículo debe existir (su nombre se reutiliza en mensajes)
+        cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (entrada.id_tipo,))
+        tipo = cur.fetchone()
+        if not tipo:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No existe un tipo de vehículo con id {entrada.id_tipo}. Consulta los tipos en GET /tipos.",
+            )
+        nombre_tipo = tipo["nombre"]
+
+        # 2) El ESPACIO debe existir (traemos su número y estado para los mensajes)
+        cur.execute("SELECT numero, estado FROM espacio WHERE id_espacio = %s", (entrada.id_espacio,))
+        espacio = cur.fetchone()
+        if not espacio:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No existe un espacio con id {entrada.id_espacio}. Revisa GET /espacios/libres.",
+            )
+
+        # 3) ¿Ya está dentro? (evita dos entradas abiertas de la misma placa)
         cur.execute(
             "SELECT id_ingreso FROM ingreso WHERE placa = %s AND fecha_hora_salida IS NULL",
             (entrada.placa,),
         )
         if cur.fetchone():
-            raise HTTPException(status_code=409, detail="Ese vehículo ya está dentro.")
-
-        # 2) Crear el vehículo si es la primera vez que lo vemos
-        cur.execute("SELECT placa FROM vehiculo WHERE placa = %s", (entrada.placa,))
-        if not cur.fetchone():
-            cur.execute(
-                "INSERT INTO vehiculo (placa, id_tipo) VALUES (%s, %s)",
-                (entrada.placa, entrada.id_tipo),
+            raise HTTPException(
+                status_code=409,
+                detail=f"El vehículo {entrada.placa} ya está registrado dentro del parqueadero.",
             )
 
-        # 3) ¿Tiene mensualidad activa HOY?
+        # 4) Tipo EFECTIVO: si la placa ya existe, manda el tipo guardado en la BD
+        cur.execute("SELECT id_tipo FROM vehiculo WHERE placa = %s", (entrada.placa,))
+        veh = cur.fetchone()
+        if veh:
+            if veh["id_tipo"] != entrada.id_tipo:
+                cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (veh["id_tipo"],))
+                tipo_real = cur.fetchone()["nombre"]
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"La placa {entrada.placa} ya está registrada como '{tipo_real}', no '{nombre_tipo}'.",
+                )
+            id_tipo_efectivo = veh["id_tipo"]
+        else:
+            # Primera vez que vemos esta placa -> la creamos
+            cur.execute(
+                "INSERT INTO vehiculo (placa, id_tipo, color, marca) VALUES (%s, %s, %s, %s)",
+                (entrada.placa, entrada.id_tipo, entrada.color, entrada.marca),
+            )
+            id_tipo_efectivo = entrada.id_tipo
+
+        # 5) ¿Tiene mensualidad activa HOY?
         cur.execute(
             """
             SELECT m.id_mensualidad, m.id_espacio
@@ -264,6 +309,13 @@ def registrar_entrada(entrada: EntradaIn):
         if mensualidad:
             # --- MENSUAL: entra a su espacio reservado, SIN tarifa por hora ---
             id_espacio = mensualidad["id_espacio"]
+            cur.execute("SELECT numero, estado FROM espacio WHERE id_espacio = %s", (id_espacio,))
+            esp_mensual = cur.fetchone()
+            if esp_mensual["estado"] == "OCUPADO":
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Tu cupo mensual (espacio N° {esp_mensual['numero']}) ya está ocupado por otro de tus vehículos.",
+                )
             cur.execute(
                 """
                 INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, es_mensual, id_mensualidad)
@@ -273,32 +325,40 @@ def registrar_entrada(entrada: EntradaIn):
             )
             id_ingreso = cur.lastrowid
             cur.execute("UPDATE espacio SET estado = 'OCUPADO' WHERE id_espacio = %s", (id_espacio,))
+            numero_espacio = esp_mensual["numero"]
             modalidad = "MENSUAL"
         else:
-            # --- OCASIONAL: validar disponibilidad (RF5) y asignar tarifa ---
+            # --- OCASIONAL: tres validaciones SEPARADAS, cada una con su mensaje ---
+            # (a) ¿El espacio está libre?
+            if espacio["estado"] != "LIBRE":
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"El espacio N° {espacio['numero']} no está disponible (estado actual: {espacio['estado']}).",
+                )
+            # (b) ¿El espacio admite este tipo de vehículo?
             cur.execute(
-                """
-                SELECT 1
-                FROM espacio e
-                JOIN espacio_tipo_permitido etp ON etp.id_espacio = e.id_espacio
-                WHERE e.id_espacio = %s AND e.estado = 'LIBRE' AND etp.id_tipo = %s
-                """,
-                (entrada.id_espacio, entrada.id_tipo),
+                "SELECT 1 FROM espacio_tipo_permitido WHERE id_espacio = %s AND id_tipo = %s",
+                (entrada.id_espacio, id_tipo_efectivo),
             )
             if not cur.fetchone():
                 raise HTTPException(
                     status_code=409,
-                    detail="El espacio no está libre o no admite ese tipo de vehículo.",
+                    detail=(
+                        f"El espacio N° {espacio['numero']} no admite vehículos de tipo '{nombre_tipo}'. "
+                        f"Mira GET /espacios/libres?id_tipo={id_tipo_efectivo}."
+                    ),
                 )
-
+            # (c) ¿Hay tarifa activa para este tipo?
             cur.execute(
                 "SELECT id_tarifa FROM tarifa WHERE id_tipo = %s AND activa = 1 LIMIT 1",
-                (entrada.id_tipo,),
+                (id_tipo_efectivo,),
             )
             tarifa = cur.fetchone()
             if not tarifa:
-                raise HTTPException(status_code=400, detail="No hay tarifa activa para ese tipo de vehículo.")
-
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"No hay una tarifa activa para el tipo '{nombre_tipo}'.",
+                )
             cur.execute(
                 """
                 INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, es_mensual, id_tarifa)
@@ -309,6 +369,7 @@ def registrar_entrada(entrada: EntradaIn):
             id_ingreso = cur.lastrowid
             cur.execute("UPDATE espacio SET estado = 'OCUPADO' WHERE id_espacio = %s", (entrada.id_espacio,))
             id_espacio = entrada.id_espacio
+            numero_espacio = espacio["numero"]
             modalidad = "OCASIONAL"
 
     # Si llegamos aquí, la transacción se confirmó (commit) sin errores.
@@ -318,6 +379,7 @@ def registrar_entrada(entrada: EntradaIn):
         "placa": entrada.placa,
         "modalidad": modalidad,
         "id_espacio": id_espacio,
+        "numero_espacio": numero_espacio,
     }
 
 
