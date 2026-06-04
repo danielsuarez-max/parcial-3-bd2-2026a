@@ -66,5 +66,5 @@ def transaccion():
 # Si ejecutas "python db.py" directamente, prueba la conexión:
 if __name__ == "__main__":
     print("Probando conexión a MySQL...")
-    filas = run_query("SELECT COUNT(*) AS total FROM espacio")
+    filas = run_query("SELECT COUNT(*) AS total FROM espacios")
     print("Conexión OK ✅  -> espacios en la BD:", filas[0]["total"])

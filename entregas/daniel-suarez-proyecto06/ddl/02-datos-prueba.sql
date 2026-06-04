@@ -20,23 +20,23 @@
 USE parqueadero;
 
 -- Limpieza por si se vuelve a ejecutar (orden inverso a las FK)
-DELETE FROM ingreso;
+DELETE FROM ingresos;
 DELETE FROM mensualidad_vehiculo;
-DELETE FROM mensualidad;
-DELETE FROM vehiculo;
-DELETE FROM cliente;
+DELETE FROM mensualidades;
+DELETE FROM vehiculos;
+DELETE FROM clientes;
 DELETE FROM espacio_tipo_permitido;
-DELETE FROM espacio;
-DELETE FROM tarifa;
+DELETE FROM espacios;
+DELETE FROM tarifas;
 DELETE FROM tipo_vehiculo;
 
 -- Reiniciar los AUTO_INCREMENT para que los IDs sean predecibles
 ALTER TABLE tipo_vehiculo  AUTO_INCREMENT = 1;
-ALTER TABLE tarifa         AUTO_INCREMENT = 1;
-ALTER TABLE espacio        AUTO_INCREMENT = 1;
-ALTER TABLE cliente        AUTO_INCREMENT = 1;
-ALTER TABLE mensualidad    AUTO_INCREMENT = 1;
-ALTER TABLE ingreso        AUTO_INCREMENT = 1;
+ALTER TABLE tarifas        AUTO_INCREMENT = 1;
+ALTER TABLE espacios       AUTO_INCREMENT = 1;
+ALTER TABLE clientes       AUTO_INCREMENT = 1;
+ALTER TABLE mensualidades  AUTO_INCREMENT = 1;
+ALTER TABLE ingresos       AUTO_INCREMENT = 1;
 
 -- =========================================================================
 -- 1) tipo_vehiculo
@@ -50,9 +50,9 @@ INSERT INTO tipo_vehiculo (nombre, descripcion) VALUES
 -- IDs: 1=Carro, 2=Moto, 3=Bicicleta, 4=Camioneta, 5=Camión
 
 -- =========================================================================
--- 2) tarifa (una activa por tipo)
+-- 2) tarifas (una activa por tipo)
 -- =========================================================================
-INSERT INTO tarifa (id_tipo, valor_hora, vigente_desde, activa) VALUES
+INSERT INTO tarifas (id_tipo, valor_hora, vigente_desde, activa) VALUES
     (1, 5000.00, '2026-01-01', 1),   -- Carro:     $5.000/h
     (2, 2500.00, '2026-01-01', 1),   -- Moto:      $2.500/h
     (3, 1000.00, '2026-01-01', 1),   -- Bicicleta: $1.000/h
@@ -61,11 +61,11 @@ INSERT INTO tarifa (id_tipo, valor_hora, vigente_desde, activa) VALUES
 -- IDs tarifa: 1=Carro, 2=Moto, 3=Bici, 4=Camioneta, 5=Camión
 
 -- =========================================================================
--- 3) espacio — 100 espacios numerados
+-- 3) espacios — 100 espacios numerados
 --    Los tipos permitidos en cada espacio se insertan más abajo
 --    en espacio_tipo_permitido.
 -- =========================================================================
-INSERT INTO espacio (numero, estado) VALUES
+INSERT INTO espacios (numero, estado) VALUES
     (1,'LIBRE'),(2,'LIBRE'),(3,'LIBRE'),(4,'LIBRE'),(5,'LIBRE'),
     (6,'LIBRE'),(7,'LIBRE'),(8,'LIBRE'),(9,'LIBRE'),(10,'LIBRE'),
     (11,'LIBRE'),(12,'LIBRE'),(13,'LIBRE'),(14,'LIBRE'),(15,'LIBRE'),
@@ -100,7 +100,7 @@ INSERT INTO espacio (numero, estado) VALUES
 -- (lo generamos con CROSS JOIN para no escribir 210 filas a mano)
 INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
 SELECT e.id_espacio, t.id_tipo
-FROM espacio e
+FROM espacios e
 CROSS JOIN tipo_vehiculo t
 WHERE e.numero BETWEEN 1 AND 70
   AND t.id_tipo IN (1, 4, 5);
@@ -108,19 +108,19 @@ WHERE e.numero BETWEEN 1 AND 70
 -- Espacios 71-90 → solo Moto
 INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
 SELECT id_espacio, 2
-FROM espacio
+FROM espacios
 WHERE numero BETWEEN 71 AND 90;
 
 -- Espacios 91-100 → solo Bicicleta
 INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
 SELECT id_espacio, 3
-FROM espacio
+FROM espacios
 WHERE numero BETWEEN 91 AND 100;
 
 -- =========================================================================
--- 4) cliente — 12 clientes
+-- 4) clientes — 12 clientes
 -- =========================================================================
-INSERT INTO cliente (documento, nombre_completo, telefono, email) VALUES
+INSERT INTO clientes (documento, nombre_completo, telefono, email) VALUES
     ('1098765432', 'Ana María Rodríguez',  '3001112233', 'ana.rodriguez@correo.com'),
     ('1023456789', 'Carlos Andrés Pérez',  '3002223344', 'carlos.perez@correo.com'),
     ('1011223344', 'Lucía Fernanda Gómez', '3003334455', 'lucia.gomez@correo.com'),
@@ -136,9 +136,9 @@ INSERT INTO cliente (documento, nombre_completo, telefono, email) VALUES
 -- IDs: 1..12
 
 -- =========================================================================
--- 5) vehiculo — placas únicas, mezcla de tipos
+-- 5) vehiculos — placas únicas, mezcla de tipos
 -- =========================================================================
-INSERT INTO vehiculo (placa, id_tipo, color, marca) VALUES
+INSERT INTO vehiculos (placa, id_tipo, color, marca) VALUES
     -- Vehículos de clientes mensuales (carros y motos)
     ('ABC123', 1, 'Rojo',     'Mazda'),     -- Cliente 1 (Ana)
     ('ABC12D', 2, 'Negro',    'Yamaha'),    -- Cliente 1 (Ana, segundo vehículo)
@@ -172,10 +172,10 @@ INSERT INTO vehiculo (placa, id_tipo, color, marca) VALUES
     ('BIC015', 3, 'Negro',    'Trek');
 
 -- =========================================================================
--- 6) mensualidad — 12 activas + 3 vencidas
+-- 6) mensualidades — 12 activas + 3 vencidas
 --    Las activas cubren 2026-05-30 (fecha de hoy)
 -- =========================================================================
-INSERT INTO mensualidad (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado) VALUES
+INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado) VALUES
     -- ACTIVAS (cubren hoy 2026-05-30)
     ( 1,  1, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- Ana — espacio 1
     ( 2,  2, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Carlos — espacio 2
@@ -220,7 +220,7 @@ INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES
     (15, 'MNO345');
 
 -- =========================================================================
--- 8) ingreso — 60 ingresos
+-- 8) ingresos — 60 ingresos
 --    50 cerrados (con salida) distribuidos en mayo de 2026
 --    10 abiertos (sin salida) ocurridos hoy (2026-05-30) — esos son los
 --    que están "actualmente dentro" para probar el RF7
@@ -233,7 +233,7 @@ INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES
 
 -- --- Ingresos MENSUALES cerrados (de los clientes con mensualidad activa) ---
 -- es_mensual=1, id_mensualidad=NN, id_tarifa=NULL, monto_cobrado=0
-INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
+INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
     ('ABC123',  1, '2026-05-02 07:30:00', '2026-05-02 17:45:00', 1,  1, NULL, 0),
     ('ABC123',  1, '2026-05-05 08:00:00', '2026-05-05 18:30:00', 1,  1, NULL, 0),
     ('ABC123',  1, '2026-05-10 07:15:00', '2026-05-10 19:00:00', 1,  1, NULL, 0),
@@ -269,7 +269,7 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
 -- --- Ingresos OCASIONALES cerrados (placas OCC y algunas no-mensuales) ---
 -- es_mensual=0, id_mensualidad=NULL, id_tarifa según el tipo, monto calculado
 -- Recordar: tarifas → 1=Carro $5000, 2=Moto $2500, 3=Bici $1000, 4=Camioneta $6500, 5=Camión $9000
-INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
+INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
     -- 20 ocasionales cerrados, repartidos en mayo
     ('OCC001', 15, '2026-05-02 10:00:00', '2026-05-02 12:30:00', 0, NULL, 1, 15000.00),  -- 3h x 5000
     ('OCC002', 16, '2026-05-03 14:00:00', '2026-05-03 16:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000
@@ -297,7 +297,7 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
 -- Ocurridos hoy 2026-05-30, distribuidos durante la mañana.
 -- Probarán el RF7.
 -- 4 mensuales + 6 ocasionales
-INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
+INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
     -- Mensuales actualmente dentro
     ('DEF456',  2, '2026-05-30 07:30:00', NULL, 1,  2, NULL, NULL),
     ('JKL012',  4, '2026-05-30 08:15:00', NULL, 1,  4, NULL, NULL),
@@ -319,18 +319,18 @@ INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, e
 -- =========================================================================
 
 -- Espacios actualmente ocupados (los 10 ingresos abiertos)
-UPDATE espacio SET estado = 'OCUPADO'
+UPDATE espacios SET estado = 'OCUPADO'
     WHERE id_espacio IN (2, 4, 71, 7, 27, 28, 79, 93, 29, 30);
 
 -- Espacios reservados (asignados a mensualidades activas pero sin uso ahora)
-UPDATE espacio SET estado = 'RESERVADO'
+UPDATE espacios SET estado = 'RESERVADO'
     WHERE id_espacio IN (1, 3, 5, 72, 6, 8, 9, 10);
 --   (1=Ana, 3=Lucía, 5=María, 72=Camila, 6=Valentina, 8=Isabella, 9=Andrés, 10=Mateo)
 
 -- =========================================================================
 -- Verificación rápida (descomenta si quieres verlas tras ejecutar):
 -- =========================================================================
--- SELECT COUNT(*) AS total_ingresos          FROM ingreso;
--- SELECT COUNT(*) AS ingresos_actuales       FROM ingreso WHERE fecha_hora_salida IS NULL;
--- SELECT COUNT(*) AS mensualidades_activas   FROM mensualidad WHERE estado='ACTIVA';
--- SELECT estado, COUNT(*) FROM espacio GROUP BY estado;
+-- SELECT COUNT(*) AS total_ingresos          FROM ingresos;
+-- SELECT COUNT(*) AS ingresos_actuales       FROM ingresos WHERE fecha_hora_salida IS NULL;
+-- SELECT COUNT(*) AS mensualidades_activas   FROM mensualidades WHERE estado='ACTIVA';
+-- SELECT estado, COUNT(*) FROM espacios GROUP BY estado;

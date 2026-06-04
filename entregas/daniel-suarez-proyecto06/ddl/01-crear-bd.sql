@@ -7,6 +7,11 @@
 --
 -- Este script crea la base de datos desde cero. Si ya existe, la elimina
 -- para garantizar un estado limpio. Ejecutarlo SOLO en entorno de desarrollo.
+--
+-- Convención de nombres: las tablas que representan COLECCIONES van en
+-- plural (clientes, espacios, ingresos, mensualidades, tarifas, vehiculos);
+-- las tablas catálogo simples y las puente conservan el singular
+-- (tipo_vehiculo, mensualidad_vehiculo, espacio_tipo_permitido).
 -- =========================================================================
 
 DROP DATABASE IF EXISTS parqueadero;
@@ -27,34 +32,34 @@ CREATE TABLE tipo_vehiculo (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 2) tarifa — Precio por hora para cada tipo de vehículo, con histórico
+-- 2) tarifas — Precio por hora para cada tipo de vehículo, con histórico
 -- =========================================================================
-CREATE TABLE tarifa (
+CREATE TABLE tarifas (
     id_tarifa      INT AUTO_INCREMENT,
     id_tipo        INT          NOT NULL,
     valor_hora     DECIMAL(10,2) NOT NULL,
     vigente_desde  DATE         NOT NULL,
     activa         TINYINT(1)   NOT NULL DEFAULT 1,
-    CONSTRAINT pk_tarifa PRIMARY KEY (id_tarifa),
-    CONSTRAINT fk_tarifa_tipo FOREIGN KEY (id_tipo)
+    CONSTRAINT pk_tarifas PRIMARY KEY (id_tarifa),
+    CONSTRAINT fk_tarifas_tipo FOREIGN KEY (id_tipo)
         REFERENCES tipo_vehiculo (id_tipo)
         ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT ck_tarifa_valor CHECK (valor_hora >= 0)
+    CONSTRAINT ck_tarifas_valor CHECK (valor_hora >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 3) espacio — Los 100 espacios numerados del parqueadero
+-- 3) espacios — Los 100 espacios numerados del parqueadero
 --    Los tipos de vehículo que cada espacio acepta se manejan en la tabla
 --    puente espacio_tipo_permitido (relación N-M), porque un mismo espacio
 --    puede permitir varios tipos (ej.: zona grande para Carro/Camioneta/Camión).
 -- =========================================================================
-CREATE TABLE espacio (
+CREATE TABLE espacios (
     id_espacio   INT AUTO_INCREMENT,
     numero       INT          NOT NULL,
     estado       ENUM('LIBRE','OCUPADO','RESERVADO') NOT NULL DEFAULT 'LIBRE',
-    CONSTRAINT pk_espacio PRIMARY KEY (id_espacio),
-    CONSTRAINT uk_espacio_numero UNIQUE (numero),
-    CONSTRAINT ck_espacio_numero CHECK (numero BETWEEN 1 AND 100)
+    CONSTRAINT pk_espacios PRIMARY KEY (id_espacio),
+    CONSTRAINT uk_espacios_numero UNIQUE (numero),
+    CONSTRAINT ck_espacios_numero CHECK (numero BETWEEN 1 AND 100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
@@ -70,7 +75,7 @@ CREATE TABLE espacio_tipo_permitido (
     id_tipo    INT NOT NULL,
     CONSTRAINT pk_espacio_tipo_permitido PRIMARY KEY (id_espacio, id_tipo),
     CONSTRAINT fk_etp_espacio FOREIGN KEY (id_espacio)
-        REFERENCES espacio (id_espacio)
+        REFERENCES espacios (id_espacio)
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_etp_tipo FOREIGN KEY (id_tipo)
         REFERENCES tipo_vehiculo (id_tipo)
@@ -78,36 +83,36 @@ CREATE TABLE espacio_tipo_permitido (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 4) vehiculo — Identificado por placa. NO distinguimos cliente ocasional.
+-- 4) vehiculos — Identificado por placa. NO distinguimos cliente ocasional.
 -- =========================================================================
-CREATE TABLE vehiculo (
+CREATE TABLE vehiculos (
     placa     VARCHAR(10) NOT NULL,
     id_tipo   INT         NOT NULL,
     color     VARCHAR(30),
     marca     VARCHAR(30),
-    CONSTRAINT pk_vehiculo PRIMARY KEY (placa),
-    CONSTRAINT fk_vehiculo_tipo FOREIGN KEY (id_tipo)
+    CONSTRAINT pk_vehiculos PRIMARY KEY (placa),
+    CONSTRAINT fk_vehiculos_tipo FOREIGN KEY (id_tipo)
         REFERENCES tipo_vehiculo (id_tipo)
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 5) cliente — Persona dueña de mensualidad
+-- 5) clientes — Persona dueña de mensualidad
 -- =========================================================================
-CREATE TABLE cliente (
+CREATE TABLE clientes (
     id_cliente        INT AUTO_INCREMENT,
     documento         VARCHAR(20) NOT NULL,
     nombre_completo   VARCHAR(100) NOT NULL,
     telefono          VARCHAR(20),
     email             VARCHAR(120),
-    CONSTRAINT pk_cliente PRIMARY KEY (id_cliente),
-    CONSTRAINT uk_cliente_documento UNIQUE (documento)
+    CONSTRAINT pk_clientes PRIMARY KEY (id_cliente),
+    CONSTRAINT uk_clientes_documento UNIQUE (documento)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 6) mensualidad — Contrato mensual: cliente + espacio + período
+-- 6) mensualidades — Contrato mensual: cliente + espacio + período
 -- =========================================================================
-CREATE TABLE mensualidad (
+CREATE TABLE mensualidades (
     id_mensualidad  INT AUTO_INCREMENT,
     id_cliente      INT          NOT NULL,
     id_espacio      INT          NOT NULL,
@@ -115,15 +120,15 @@ CREATE TABLE mensualidad (
     fecha_fin       DATE         NOT NULL,
     monto_pagado    DECIMAL(10,2) NOT NULL,
     estado          ENUM('ACTIVA','VENCIDA','CANCELADA') NOT NULL DEFAULT 'ACTIVA',
-    CONSTRAINT pk_mensualidad PRIMARY KEY (id_mensualidad),
-    CONSTRAINT fk_mensualidad_cliente FOREIGN KEY (id_cliente)
-        REFERENCES cliente (id_cliente)
+    CONSTRAINT pk_mensualidades PRIMARY KEY (id_mensualidad),
+    CONSTRAINT fk_mensualidades_cliente FOREIGN KEY (id_cliente)
+        REFERENCES clientes (id_cliente)
         ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_mensualidad_espacio FOREIGN KEY (id_espacio)
-        REFERENCES espacio (id_espacio)
+    CONSTRAINT fk_mensualidades_espacio FOREIGN KEY (id_espacio)
+        REFERENCES espacios (id_espacio)
         ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT ck_mensualidad_fechas CHECK (fecha_fin >= fecha_inicio),
-    CONSTRAINT ck_mensualidad_monto  CHECK (monto_pagado >= 0)
+    CONSTRAINT ck_mensualidades_fechas CHECK (fecha_fin >= fecha_inicio),
+    CONSTRAINT ck_mensualidades_monto  CHECK (monto_pagado >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
@@ -134,17 +139,17 @@ CREATE TABLE mensualidad_vehiculo (
     placa           VARCHAR(10) NOT NULL,
     CONSTRAINT pk_mensualidad_vehiculo PRIMARY KEY (id_mensualidad, placa),
     CONSTRAINT fk_mv_mensualidad FOREIGN KEY (id_mensualidad)
-        REFERENCES mensualidad (id_mensualidad)
+        REFERENCES mensualidades (id_mensualidad)
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_mv_vehiculo FOREIGN KEY (placa)
-        REFERENCES vehiculo (placa)
+        REFERENCES vehiculos (placa)
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 8) ingreso — Entrada/salida de un vehículo
+-- 8) ingresos — Entrada/salida de un vehículo
 -- =========================================================================
-CREATE TABLE ingreso (
+CREATE TABLE ingresos (
     id_ingreso          INT AUTO_INCREMENT,
     placa               VARCHAR(10)  NOT NULL,
     id_espacio          INT          NOT NULL,
@@ -154,15 +159,15 @@ CREATE TABLE ingreso (
     id_mensualidad      INT,
     id_tarifa           INT,
     monto_cobrado       DECIMAL(10,2),
-    CONSTRAINT pk_ingreso PRIMARY KEY (id_ingreso),
-    CONSTRAINT fk_ingreso_vehiculo FOREIGN KEY (placa)
-        REFERENCES vehiculo (placa)
+    CONSTRAINT pk_ingresos PRIMARY KEY (id_ingreso),
+    CONSTRAINT fk_ingresos_vehiculo FOREIGN KEY (placa)
+        REFERENCES vehiculos (placa)
         ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_ingreso_espacio FOREIGN KEY (id_espacio)
-        REFERENCES espacio (id_espacio)
+    CONSTRAINT fk_ingresos_espacio FOREIGN KEY (id_espacio)
+        REFERENCES espacios (id_espacio)
         ON DELETE RESTRICT ON UPDATE CASCADE,
     -- Nota: estas FK usan RESTRICT en AMBAS acciones (DELETE y UPDATE)
-    -- porque sus columnas aparecen en el CHECK ck_ingreso_tipo_cobro.
+    -- porque sus columnas aparecen en el CHECK ck_ingresos_tipo_cobro.
     -- MySQL 8 prohíbe que una columna referenciada por un CHECK pueda
     -- ser modificada automáticamente por una acción referencial
     -- (CASCADE, SET NULL y SET DEFAULT cuentan como modificación;
@@ -171,19 +176,19 @@ CREATE TABLE ingreso (
     -- se actualizan a mano. Y nunca queremos perder el vínculo
     -- histórico de un ingreso: para "borrar" se usa borrado lógico
     -- (cambiar estado/activa), no DELETE físico.
-    CONSTRAINT fk_ingreso_mensualidad FOREIGN KEY (id_mensualidad)
-        REFERENCES mensualidad (id_mensualidad)
+    CONSTRAINT fk_ingresos_mensualidad FOREIGN KEY (id_mensualidad)
+        REFERENCES mensualidades (id_mensualidad)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT fk_ingreso_tarifa FOREIGN KEY (id_tarifa)
-        REFERENCES tarifa (id_tarifa)
+    CONSTRAINT fk_ingresos_tarifa FOREIGN KEY (id_tarifa)
+        REFERENCES tarifas (id_tarifa)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
-    CONSTRAINT ck_ingreso_fechas CHECK (
+    CONSTRAINT ck_ingresos_fechas CHECK (
         fecha_hora_salida IS NULL OR fecha_hora_salida >= fecha_hora_entrada
     ),
-    CONSTRAINT ck_ingreso_monto CHECK (
+    CONSTRAINT ck_ingresos_monto CHECK (
         monto_cobrado IS NULL OR monto_cobrado >= 0
     ),
-    CONSTRAINT ck_ingreso_tipo_cobro CHECK (
+    CONSTRAINT ck_ingresos_tipo_cobro CHECK (
         -- Si es mensual: NO debe traer tarifa por hora.
         -- Si es ocasional: SÍ debe traer tarifa por hora.
         (es_mensual = 1 AND id_tarifa IS NULL AND id_mensualidad IS NOT NULL)
@@ -193,5 +198,5 @@ CREATE TABLE ingreso (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Índice útil para la consulta "¿qué vehículos están dentro?" (RF7)
-CREATE INDEX idx_ingreso_dentro
-    ON ingreso (fecha_hora_salida, fecha_hora_entrada);
+CREATE INDEX idx_ingresos_dentro
+    ON ingresos (fecha_hora_salida, fecha_hora_entrada);

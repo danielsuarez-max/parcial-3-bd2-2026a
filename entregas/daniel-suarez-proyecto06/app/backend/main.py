@@ -55,12 +55,12 @@ def vehiculos_dentro():
             CASE WHEN i.es_mensual = 1 THEN 'MENSUAL' ELSE 'OCASIONAL' END AS modalidad,
             c.nombre_completo                  AS cliente_mensual,
             TIMESTAMPDIFF(MINUTE, i.fecha_hora_entrada, NOW()) AS minutos_dentro
-        FROM ingreso i
-        JOIN vehiculo v        ON v.placa = i.placa
+        FROM ingresos i
+        JOIN vehiculos v        ON v.placa = i.placa
         JOIN tipo_vehiculo tv  ON tv.id_tipo = v.id_tipo
-        JOIN espacio e         ON e.id_espacio = i.id_espacio
-        LEFT JOIN mensualidad m ON m.id_mensualidad = i.id_mensualidad
-        LEFT JOIN cliente c     ON c.id_cliente = m.id_cliente
+        JOIN espacios e         ON e.id_espacio = i.id_espacio
+        LEFT JOIN mensualidades m ON m.id_mensualidad = i.id_mensualidad
+        LEFT JOIN clientes c     ON c.id_cliente = m.id_cliente
         WHERE i.fecha_hora_salida IS NULL
         ORDER BY i.fecha_hora_entrada
     """
@@ -82,7 +82,7 @@ def tarifas():
     sql = """
         SELECT t.id_tarifa, t.id_tipo, tv.nombre AS tipo,
                t.valor_hora, t.vigente_desde
-        FROM tarifa t
+        FROM tarifas t
         JOIN tipo_vehiculo tv ON tv.id_tipo = t.id_tipo
         WHERE t.activa = 1
         ORDER BY tv.nombre
@@ -99,13 +99,13 @@ def ocupacion():
     """Estado actual: libres / ocupados / reservados y % de ocupación."""
     sql = """
         SELECT
-            (SELECT COUNT(*) FROM espacio)                            AS total_espacios,
-            (SELECT COUNT(*) FROM espacio WHERE estado = 'LIBRE')     AS libres,
-            (SELECT COUNT(*) FROM espacio WHERE estado = 'OCUPADO')   AS ocupados,
-            (SELECT COUNT(*) FROM espacio WHERE estado = 'RESERVADO') AS reservados,
+            (SELECT COUNT(*) FROM espacios)                            AS total_espacios,
+            (SELECT COUNT(*) FROM espacios WHERE estado = 'LIBRE')     AS libres,
+            (SELECT COUNT(*) FROM espacios WHERE estado = 'OCUPADO')   AS ocupados,
+            (SELECT COUNT(*) FROM espacios WHERE estado = 'RESERVADO') AS reservados,
             ROUND(
-                (SELECT COUNT(*) FROM espacio WHERE estado = 'OCUPADO') * 100.0
-                / (SELECT COUNT(*) FROM espacio), 2
+                (SELECT COUNT(*) FROM espacios WHERE estado = 'OCUPADO') * 100.0
+                / (SELECT COUNT(*) FROM espacios), 2
             )                                                         AS porcentaje_ocupacion
     """
     return run_query(sql)[0]   # una sola fila -> devolvemos el dict, no la lista
@@ -121,7 +121,7 @@ def reporte_dia():
             SUM(CASE WHEN i.es_mensual = 0 THEN 1 ELSE 0 END) AS ocasionales,
             SUM(CASE WHEN i.es_mensual = 1 THEN 1 ELSE 0 END) AS mensuales,
             COALESCE(SUM(i.monto_cobrado), 0)                 AS recaudado_ocasionales
-        FROM ingreso i
+        FROM ingresos i
         WHERE i.fecha_hora_salida IS NOT NULL
         GROUP BY DATE(i.fecha_hora_entrada)
         ORDER BY dia
@@ -141,10 +141,10 @@ def reporte_mes():
             COALESCE(men.recaudado_mensualidades, 0) AS recaudado_mensualidades
         FROM (
             SELECT DISTINCT DATE_FORMAT(fecha_hora_entrada, '%Y-%m') AS mes
-            FROM ingreso WHERE fecha_hora_salida IS NOT NULL
+            FROM ingresos WHERE fecha_hora_salida IS NOT NULL
             UNION
             SELECT DISTINCT DATE_FORMAT(fecha_inicio, '%Y-%m') AS mes
-            FROM mensualidad
+            FROM mensualidades
         ) meses
         LEFT JOIN (
             SELECT
@@ -160,7 +160,7 @@ def reporte_mes():
             SELECT
                 DATE_FORMAT(fecha_inicio, '%Y-%m') AS mes,
                 SUM(monto_pagado)                  AS recaudado_mensualidades
-            FROM mensualidad
+            FROM mensualidades
             GROUP BY DATE_FORMAT(fecha_inicio, '%Y-%m')
         ) men ON men.mes = meses.mes
         ORDER BY meses.mes
@@ -180,7 +180,7 @@ def espacios_libres(id_tipo: int):
     """
     sql = """
         SELECT e.id_espacio, e.numero
-        FROM espacio e
+        FROM espacios e
         JOIN espacio_tipo_permitido etp ON etp.id_espacio = e.id_espacio
         WHERE e.estado = 'LIBRE'
           AND etp.id_tipo = %s
@@ -203,9 +203,9 @@ def mensualidad_de_placa(placa: str):
     sql = """
         SELECT m.id_mensualidad, m.id_espacio, m.fecha_inicio, m.fecha_fin,
                c.nombre_completo
-        FROM mensualidad m
+        FROM mensualidades m
         JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
-        JOIN cliente c               ON c.id_cliente = m.id_cliente
+        JOIN clientes c               ON c.id_cliente = m.id_cliente
         WHERE mv.placa = %s
           AND m.estado = 'ACTIVA'
           AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
@@ -285,7 +285,7 @@ def registrar_entrada(entrada: EntradaIn):
         nombre_tipo = tipo["nombre"]
 
         # 2) El ESPACIO debe existir (traemos su número y estado para los mensajes)
-        cur.execute("SELECT numero, estado FROM espacio WHERE id_espacio = %s", (entrada.id_espacio,))
+        cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (entrada.id_espacio,))
         espacio = cur.fetchone()
         if not espacio:
             raise HTTPException(
@@ -295,7 +295,7 @@ def registrar_entrada(entrada: EntradaIn):
 
         # 3) ¿Ya está dentro? (evita dos entradas abiertas de la misma placa)
         cur.execute(
-            "SELECT id_ingreso FROM ingreso WHERE placa = %s AND fecha_hora_salida IS NULL",
+            "SELECT id_ingreso FROM ingresos WHERE placa = %s AND fecha_hora_salida IS NULL",
             (entrada.placa,),
         )
         if cur.fetchone():
@@ -305,7 +305,7 @@ def registrar_entrada(entrada: EntradaIn):
             )
 
         # 4) Tipo EFECTIVO: si la placa ya existe, manda el tipo guardado en la BD
-        cur.execute("SELECT id_tipo FROM vehiculo WHERE placa = %s", (entrada.placa,))
+        cur.execute("SELECT id_tipo FROM vehiculos WHERE placa = %s", (entrada.placa,))
         veh = cur.fetchone()
         if veh:
             if veh["id_tipo"] != entrada.id_tipo:
@@ -320,7 +320,7 @@ def registrar_entrada(entrada: EntradaIn):
             # Primera vez que vemos esta placa -> validamos su formato y la creamos
             validar_formato_placa(entrada.placa, nombre_tipo)
             cur.execute(
-                "INSERT INTO vehiculo (placa, id_tipo, color, marca) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO vehiculos (placa, id_tipo, color, marca) VALUES (%s, %s, %s, %s)",
                 (entrada.placa, entrada.id_tipo, entrada.color, entrada.marca),
             )
             id_tipo_efectivo = entrada.id_tipo
@@ -329,7 +329,7 @@ def registrar_entrada(entrada: EntradaIn):
         cur.execute(
             """
             SELECT m.id_mensualidad, m.id_espacio
-            FROM mensualidad m
+            FROM mensualidades m
             JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
             WHERE mv.placa = %s AND m.estado = 'ACTIVA'
               AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
@@ -341,7 +341,7 @@ def registrar_entrada(entrada: EntradaIn):
         if mensualidad:
             # --- MENSUAL: entra a su espacio reservado, SIN tarifa por hora ---
             id_espacio = mensualidad["id_espacio"]
-            cur.execute("SELECT numero, estado FROM espacio WHERE id_espacio = %s", (id_espacio,))
+            cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (id_espacio,))
             esp_mensual = cur.fetchone()
             if esp_mensual["estado"] == "OCUPADO":
                 raise HTTPException(
@@ -350,13 +350,13 @@ def registrar_entrada(entrada: EntradaIn):
                 )
             cur.execute(
                 """
-                INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, es_mensual, id_mensualidad)
+                INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, es_mensual, id_mensualidad)
                 VALUES (%s, %s, NOW(), 1, %s)
                 """,
                 (entrada.placa, id_espacio, mensualidad["id_mensualidad"]),
             )
             id_ingreso = cur.lastrowid
-            cur.execute("UPDATE espacio SET estado = 'OCUPADO' WHERE id_espacio = %s", (id_espacio,))
+            cur.execute("UPDATE espacios SET estado = 'OCUPADO' WHERE id_espacio = %s", (id_espacio,))
             numero_espacio = esp_mensual["numero"]
             modalidad = "MENSUAL"
         else:
@@ -382,7 +382,7 @@ def registrar_entrada(entrada: EntradaIn):
                 )
             # (c) ¿Hay tarifa activa para este tipo?
             cur.execute(
-                "SELECT id_tarifa FROM tarifa WHERE id_tipo = %s AND activa = 1 LIMIT 1",
+                "SELECT id_tarifa FROM tarifas WHERE id_tipo = %s AND activa = 1 LIMIT 1",
                 (id_tipo_efectivo,),
             )
             tarifa = cur.fetchone()
@@ -393,13 +393,13 @@ def registrar_entrada(entrada: EntradaIn):
                 )
             cur.execute(
                 """
-                INSERT INTO ingreso (placa, id_espacio, fecha_hora_entrada, es_mensual, id_tarifa)
+                INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, es_mensual, id_tarifa)
                 VALUES (%s, %s, NOW(), 0, %s)
                 """,
                 (entrada.placa, entrada.id_espacio, tarifa["id_tarifa"]),
             )
             id_ingreso = cur.lastrowid
-            cur.execute("UPDATE espacio SET estado = 'OCUPADO' WHERE id_espacio = %s", (entrada.id_espacio,))
+            cur.execute("UPDATE espacios SET estado = 'OCUPADO' WHERE id_espacio = %s", (entrada.id_espacio,))
             id_espacio = entrada.id_espacio
             numero_espacio = espacio["numero"]
             modalidad = "OCASIONAL"
@@ -431,9 +431,13 @@ def registrar_salida(id_ingreso: int):
         # 1) Buscar el ingreso y validar que esté ABIERTO (sin salida)
         cur.execute(
             """
-            SELECT id_ingreso, placa, id_espacio, es_mensual, id_tarifa,
-                   fecha_hora_entrada, fecha_hora_salida
-            FROM ingreso WHERE id_ingreso = %s
+            SELECT i.id_ingreso, i.placa, i.id_espacio, i.es_mensual, i.id_tarifa,
+                   i.fecha_hora_entrada, i.fecha_hora_salida,
+                   tv.nombre AS tipo_vehiculo
+            FROM ingresos i
+            JOIN vehiculos v       ON v.placa = i.placa
+            JOIN tipo_vehiculo tv ON tv.id_tipo = v.id_tipo
+            WHERE i.id_ingreso = %s
             """,
             (id_ingreso,),
         )
@@ -448,25 +452,25 @@ def registrar_salida(id_ingreso: int):
 
         if ing["es_mensual"]:
             # --- MENSUAL: sin cobro por hora; el cupo vuelve a RESERVADO ---
-            cur.execute("UPDATE ingreso SET fecha_hora_salida = NOW() WHERE id_ingreso = %s", (id_ingreso,))
-            cur.execute("UPDATE espacio SET estado = 'RESERVADO' WHERE id_espacio = %s", (ing["id_espacio"],))
+            cur.execute("UPDATE ingresos SET fecha_hora_salida = NOW() WHERE id_ingreso = %s", (id_ingreso,))
+            cur.execute("UPDATE espacios SET estado = 'RESERVADO' WHERE id_espacio = %s", (ing["id_espacio"],))
             modalidad = "MENSUAL"
         else:
             # --- OCASIONAL: cobro = CEIL(minutos / 60) × valor_hora de su tarifa ---
-            cur.execute("SELECT valor_hora FROM tarifa WHERE id_tarifa = %s", (ing["id_tarifa"],))
+            cur.execute("SELECT valor_hora FROM tarifas WHERE id_tarifa = %s", (ing["id_tarifa"],))
             valor_hora = cur.fetchone()["valor_hora"]
             # NOW() es constante dentro de UNA sentencia: la hora de salida y el
             # cálculo del cobro usan exactamente el mismo instante.
             cur.execute(
                 """
-                UPDATE ingreso
+                UPDATE ingresos
                 SET fecha_hora_salida = NOW(),
                     monto_cobrado = CEIL(TIMESTAMPDIFF(MINUTE, fecha_hora_entrada, NOW()) / 60) * %s
                 WHERE id_ingreso = %s
                 """,
                 (valor_hora, id_ingreso),
             )
-            cur.execute("UPDATE espacio SET estado = 'LIBRE' WHERE id_espacio = %s", (ing["id_espacio"],))
+            cur.execute("UPDATE espacios SET estado = 'LIBRE' WHERE id_espacio = %s", (ing["id_espacio"],))
             modalidad = "OCASIONAL"
 
         # 2) Leer el resultado final para devolver un resumen claro
@@ -476,7 +480,7 @@ def registrar_salida(id_ingreso: int):
                 TIMESTAMPDIFF(MINUTE, fecha_hora_entrada, fecha_hora_salida)      AS minutos,
                 CEIL(TIMESTAMPDIFF(MINUTE, fecha_hora_entrada, fecha_hora_salida) / 60) AS horas,
                 monto_cobrado
-            FROM ingreso WHERE id_ingreso = %s
+            FROM ingresos WHERE id_ingreso = %s
             """,
             (id_ingreso,),
         )
@@ -486,6 +490,7 @@ def registrar_salida(id_ingreso: int):
         "mensaje": "Salida registrada",
         "id_ingreso": id_ingreso,
         "placa": ing["placa"],
+        "tipo_vehiculo": ing["tipo_vehiculo"],
         "modalidad": modalidad,
         "minutos_dentro": r["minutos"],
     }
