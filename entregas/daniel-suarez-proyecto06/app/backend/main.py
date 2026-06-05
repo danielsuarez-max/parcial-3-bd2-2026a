@@ -5,6 +5,7 @@ Cada endpoint ejecuta una consulta en la BD y devuelve JSON.
 """
 import re
 from datetime import date
+from enum import IntEnum
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +33,17 @@ def con_total(filas):
     """Envuelve una lista en {total, datos}: así el frontend recibe de una
     vez cuántos registros hay, sin tener que contarlos."""
     return {"total": len(filas), "datos": filas}
+
+
+# Catálogo fijo de tipos de vehículo (coincide con los IDs de la tabla tipo_vehiculo).
+# Al usarlo como tipo de un campo, Swagger lo muestra como un MENÚ DESPLEGABLE
+# y solo acepta estos valores -> imposible mandar un id_tipo inválido.
+class TipoVehiculo(IntEnum):
+    CARRO = 1
+    MOTO = 2
+    BICICLETA = 3
+    CAMIONETA = 4
+    CAMION = 5
 
 
 @app.get("/")
@@ -174,7 +186,7 @@ def reporte_mes():
 # ============================================================
 
 @app.get("/espacios/libres")
-def espacios_libres(id_tipo: int):
+def espacios_libres(id_tipo: TipoVehiculo):
     """
     RF5 — Espacios LIBRES compatibles con un tipo de vehículo.
     Ejemplo:  /espacios/libres?id_tipo=1
@@ -221,7 +233,7 @@ def mensualidad_de_placa(placa: str):
 class EntradaIn(BaseModel):
     """Datos que el operador envía para registrar una entrada."""
     placa: str
-    id_tipo: int              # tipo del vehículo (para crearlo si es su primera vez)
+    id_tipo: TipoVehiculo     # menú desplegable en Swagger (Carro, Moto, ...)
     id_espacio: int           # espacio elegido (se ignora si el vehículo es mensual)
     color: str | None = None  # opcional: solo se usa al crear el vehículo por 1ra vez
     marca: str | None = None  # opcional: idem
@@ -510,7 +522,7 @@ def registrar_salida(id_ingreso: int):
 
 class TarifaIn(BaseModel):
     """Nueva tarifa por hora para un tipo de vehículo."""
-    id_tipo: int
+    id_tipo: TipoVehiculo
     valor_hora: float
     vigente_desde: date | None = None   # si no se indica, se usa la fecha de hoy
 
@@ -547,7 +559,7 @@ def crear_tarifa(tarifa: TarifaIn):
 
 
 @app.get("/tarifas/historico")
-def tarifas_historico(id_tipo: int):
+def tarifas_historico(id_tipo: TipoVehiculo):
     """RF3 — Histórico de tarifas de un tipo (activas e inactivas)."""
     sql = """
         SELECT t.id_tarifa, tv.nombre AS tipo, t.valor_hora, t.vigente_desde, t.activa
@@ -586,7 +598,7 @@ def listar_clientes():
 class VehiculoMensualIn(BaseModel):
     """Un vehículo cubierto por la mensualidad (se crea si no existe)."""
     placa: str
-    id_tipo: int
+    id_tipo: TipoVehiculo
 
     @field_validator("placa")
     @classmethod
