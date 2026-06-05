@@ -43,22 +43,22 @@ ALTER TABLE ingresos       AUTO_INCREMENT = 1;
 -- =========================================================================
 INSERT INTO tipo_vehiculo (nombre, descripcion) VALUES
     ('Carro',      'Vehículo particular de 4 ruedas'),
-    ('Moto',       'Motocicleta de 2 ruedas'),
-    ('Bicicleta',  'Bicicleta tradicional o eléctrica'),
     ('Camioneta',  'Vehículo SUV / pickup'),
-    ('Camión',     'Vehículo de carga pesada');
--- IDs: 1=Carro, 2=Moto, 3=Bicicleta, 4=Camioneta, 5=Camión
+    ('Camión',     'Vehículo de carga pesada'),
+    ('Moto',       'Motocicleta de 2 ruedas'),
+    ('Bicicleta',  'Bicicleta tradicional o eléctrica');
+-- IDs: 1=Carro, 2=Camioneta, 3=Camión, 4=Moto, 5=Bicicleta
 
 -- =========================================================================
 -- 2) tarifas (una activa por tipo)
 -- =========================================================================
 INSERT INTO tarifas (id_tipo, valor_hora, vigente_desde, activa) VALUES
     (1, 5000.00, '2026-01-01', 1),   -- Carro:     $5.000/h
-    (2, 2500.00, '2026-01-01', 1),   -- Moto:      $2.500/h
-    (3, 1000.00, '2026-01-01', 1),   -- Bicicleta: $1.000/h
-    (4, 6500.00, '2026-01-01', 1),   -- Camioneta: $6.500/h
-    (5, 9000.00, '2026-01-01', 1);   -- Camión:    $9.000/h
--- IDs tarifa: 1=Carro, 2=Moto, 3=Bici, 4=Camioneta, 5=Camión
+    (2, 6500.00, '2026-01-01', 1),   -- Camioneta: $6.500/h
+    (3, 9000.00, '2026-01-01', 1),   -- Camión:    $9.000/h
+    (4, 2500.00, '2026-01-01', 1),   -- Moto:      $2.500/h
+    (5, 1000.00, '2026-01-01', 1);   -- Bicicleta: $1.000/h
+-- IDs tarifa: 1=Carro, 2=Camioneta, 3=Camión, 4=Moto, 5=Bicicleta
 
 -- =========================================================================
 -- 3) espacios — 100 espacios numerados
@@ -90,9 +90,9 @@ INSERT INTO espacios (numero, estado) VALUES
 -- =========================================================================
 -- 3.b) espacio_tipo_permitido — qué tipos acepta cada espacio
 --      Reglas:
---        Espacios 1-70  : Carro (1), Camioneta (4), Camión (5)  → 3 filas c/u
---        Espacios 71-90 : Moto (2)                              → 1 fila c/u
---        Espacios 91-100: Bicicleta (3)                         → 1 fila c/u
+--        Espacios 1-70  : Carro (1), Camioneta (2), Camión (3)  → 3 filas c/u
+--        Espacios 71-90 : Moto (4)                              → 1 fila c/u
+--        Espacios 91-100: Bicicleta (5)                         → 1 fila c/u
 --      Total esperado: 70*3 + 20*1 + 10*1 = 240 filas.
 -- =========================================================================
 
@@ -103,17 +103,17 @@ SELECT e.id_espacio, t.id_tipo
 FROM espacios e
 CROSS JOIN tipo_vehiculo t
 WHERE e.numero BETWEEN 1 AND 70
-  AND t.id_tipo IN (1, 4, 5);
+  AND t.id_tipo IN (1, 2, 3);
 
 -- Espacios 71-90 → solo Moto
 INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
-SELECT id_espacio, 2
+SELECT id_espacio, 4
 FROM espacios
 WHERE numero BETWEEN 71 AND 90;
 
 -- Espacios 91-100 → solo Bicicleta
 INSERT INTO espacio_tipo_permitido (id_espacio, id_tipo)
-SELECT id_espacio, 3
+SELECT id_espacio, 5
 FROM espacios
 WHERE numero BETWEEN 91 AND 100;
 
@@ -141,35 +141,35 @@ INSERT INTO clientes (documento, nombre_completo, telefono, email) VALUES
 INSERT INTO vehiculos (placa, id_tipo, color, marca) VALUES
     -- Vehículos de clientes mensuales (carros y motos)
     ('ABC123', 1, 'Rojo',     'Mazda'),     -- Cliente 1 (Ana)
-    ('ABC12D', 2, 'Negro',    'Yamaha'),    -- Cliente 1 (Ana, segundo vehículo)
+    ('ABC12D', 4, 'Negro',    'Yamaha'),    -- Cliente 1 (Ana, segundo vehículo)
     ('DEF456', 1, 'Blanco',   'Chevrolet'), -- Cliente 2 (Carlos)
     ('GHI789', 1, 'Gris',     'Renault'),   -- Cliente 3 (Lucía)
-    ('JKL012', 4, 'Azul',     'Toyota'),    -- Cliente 4 (Jorge - camioneta)
+    ('JKL012', 2, 'Azul',     'Toyota'),    -- Cliente 4 (Jorge - camioneta)
     ('MNO345', 1, 'Plata',    'Hyundai'),   -- Cliente 5 (María)
-    ('PQR67D', 2, 'Rojo',     'Honda'),     -- Cliente 6 (Diego - moto)
+    ('PQR67D', 4, 'Rojo',     'Honda'),     -- Cliente 6 (Diego - moto)
     ('STU901', 1, 'Negro',    'Kia'),       -- Cliente 7 (Valentina)
-    ('STU90D', 2, 'Azul',     'Suzuki'),    -- Cliente 7 (Valentina, segundo)
+    ('STU90D', 4, 'Azul',     'Suzuki'),    -- Cliente 7 (Valentina, segundo)
     ('VWX234', 1, 'Blanco',   'Nissan'),    -- Cliente 8 (Sebastián)
-    ('YZA567', 4, 'Negro',    'Ford'),      -- Cliente 9 (Isabella - camioneta)
+    ('YZA567', 2, 'Negro',    'Ford'),      -- Cliente 9 (Isabella - camioneta)
     ('BCD890', 1, 'Verde',    'Volkswagen'), -- Cliente 10 (Andrés)
-    ('EFG12D', 2, 'Blanco',   'Bajaj'),     -- Cliente 11 (Camila - moto)
+    ('EFG12D', 4, 'Blanco',   'Bajaj'),     -- Cliente 11 (Camila - moto)
     ('HIJ456', 1, 'Gris',     'Mazda'),     -- Cliente 12 (Mateo)
     -- Vehículos ocasionales (los usaremos en ingresos sin mensualidad)
     ('OCC001', 1, 'Rojo',     'Chevrolet'),
     ('OCC002', 1, 'Negro',    'Renault'),
-    ('OCC03D', 2, 'Azul',     'Yamaha'),
+    ('OCC03D', 4, 'Azul',     'Yamaha'),
     ('OCC004', 1, 'Blanco',   'Toyota'),
-    ('OCC05D', 2, 'Negro',    'Honda'),
+    ('OCC05D', 4, 'Negro',    'Honda'),
     ('OCC006', 1, 'Plata',    'Hyundai'),
-    ('OCC007', 4, 'Rojo',     'Ford'),
-    ('BIC008', 3, 'Azul',     'GW'),
+    ('OCC007', 2, 'Rojo',     'Ford'),
+    ('BIC008', 5, 'Azul',     'GW'),
     ('OCC009', 1, 'Verde',    'Mazda'),
-    ('OCC10D', 2, 'Rojo',     'Suzuki'),
+    ('OCC10D', 4, 'Rojo',     'Suzuki'),
     ('OCC011', 1, 'Negro',    'Nissan'),
-    ('OCC012', 5, 'Blanco',   'Mercedes'),
+    ('OCC012', 3, 'Blanco',   'Mercedes'),
     ('OCC013', 1, 'Gris',     'Kia'),
-    ('OCC14D', 2, 'Blanco',   'Bajaj'),
-    ('BIC015', 3, 'Negro',    'Trek');
+    ('OCC14D', 4, 'Blanco',   'Bajaj'),
+    ('BIC015', 5, 'Negro',    'Trek');
 
 -- =========================================================================
 -- 6) mensualidades — 12 activas + 3 vencidas
@@ -268,28 +268,28 @@ INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, 
 
 -- --- Ingresos OCASIONALES cerrados (placas OCC y algunas no-mensuales) ---
 -- es_mensual=0, id_mensualidad=NULL, id_tarifa según el tipo, monto calculado
--- Recordar: tarifas → 1=Carro $5000, 2=Moto $2500, 3=Bici $1000, 4=Camioneta $6500, 5=Camión $9000
+-- Recordar: tarifas → 1=Carro $5000, 2=Camioneta $6500, 3=Camión $9000, 4=Moto $2500, 5=Bici $1000
 INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, es_mensual, id_mensualidad, id_tarifa, monto_cobrado) VALUES
     -- 20 ocasionales cerrados, repartidos en mayo
     ('OCC001', 15, '2026-05-02 10:00:00', '2026-05-02 12:30:00', 0, NULL, 1, 15000.00),  -- 3h x 5000
     ('OCC002', 16, '2026-05-03 14:00:00', '2026-05-03 16:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000
-    ('OCC03D', 73, '2026-05-04 09:00:00', '2026-05-04 11:30:00', 0, NULL, 2,  7500.00),  -- 3h x 2500
+    ('OCC03D', 73, '2026-05-04 09:00:00', '2026-05-04 11:30:00', 0, NULL, 4,  7500.00),  -- 3h x 2500
     ('OCC004', 17, '2026-05-05 15:30:00', '2026-05-05 19:00:00', 0, NULL, 1, 20000.00),  -- 4h x 5000
-    ('OCC05D', 74, '2026-05-07 08:00:00', '2026-05-07 13:30:00', 0, NULL, 2, 15000.00),  -- 6h x 2500
+    ('OCC05D', 74, '2026-05-07 08:00:00', '2026-05-07 13:30:00', 0, NULL, 4, 15000.00),  -- 6h x 2500
     ('OCC006', 18, '2026-05-09 11:00:00', '2026-05-09 13:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000
-    ('OCC007', 19, '2026-05-10 09:30:00', '2026-05-10 18:00:00', 0, NULL, 4, 58500.00),  -- 9h x 6500
-    ('BIC008', 91, '2026-05-11 14:00:00', '2026-05-11 16:00:00', 0, NULL, 3,  2000.00),  -- 2h x 1000
+    ('OCC007', 19, '2026-05-10 09:30:00', '2026-05-10 18:00:00', 0, NULL, 2, 58500.00),  -- 9h x 6500
+    ('BIC008', 91, '2026-05-11 14:00:00', '2026-05-11 16:00:00', 0, NULL, 5,  2000.00),  -- 2h x 1000
     ('OCC009', 20, '2026-05-13 07:30:00', '2026-05-13 12:15:00', 0, NULL, 1, 25000.00),  -- 5h x 5000
-    ('OCC10D', 75, '2026-05-14 10:00:00', '2026-05-14 14:00:00', 0, NULL, 2, 10000.00),  -- 4h x 2500
+    ('OCC10D', 75, '2026-05-14 10:00:00', '2026-05-14 14:00:00', 0, NULL, 4, 10000.00),  -- 4h x 2500
     ('OCC011', 21, '2026-05-16 16:00:00', '2026-05-16 19:30:00', 0, NULL, 1, 20000.00),  -- 4h x 5000
-    ('OCC012', 22, '2026-05-18 06:00:00', '2026-05-18 14:00:00', 0, NULL, 5, 72000.00),  -- 8h x 9000
+    ('OCC012', 22, '2026-05-18 06:00:00', '2026-05-18 14:00:00', 0, NULL, 3, 72000.00),  -- 8h x 9000
     ('OCC013', 23, '2026-05-19 13:30:00', '2026-05-19 18:00:00', 0, NULL, 1, 25000.00),  -- 5h x 5000
-    ('OCC14D', 76, '2026-05-21 10:00:00', '2026-05-21 12:30:00', 0, NULL, 2,  7500.00),  -- 3h x 2500
-    ('BIC015', 92, '2026-05-22 15:00:00', '2026-05-22 16:00:00', 0, NULL, 3,  1000.00),  -- 1h x 1000
+    ('OCC14D', 76, '2026-05-21 10:00:00', '2026-05-21 12:30:00', 0, NULL, 4,  7500.00),  -- 3h x 2500
+    ('BIC015', 92, '2026-05-22 15:00:00', '2026-05-22 16:00:00', 0, NULL, 5,  1000.00),  -- 1h x 1000
     ('OCC001', 24, '2026-05-23 09:30:00', '2026-05-23 11:00:00', 0, NULL, 1, 10000.00),  -- 2h x 5000 (rep)
-    ('OCC03D', 77, '2026-05-25 13:00:00', '2026-05-25 17:30:00', 0, NULL, 2, 12500.00),  -- 5h x 2500
-    ('OCC05D', 78, '2026-05-26 10:00:00', '2026-05-26 12:00:00', 0, NULL, 2,  5000.00),  -- 2h x 2500
-    ('OCC007', 25, '2026-05-27 14:00:00', '2026-05-27 19:00:00', 0, NULL, 4, 32500.00),  -- 5h x 6500
+    ('OCC03D', 77, '2026-05-25 13:00:00', '2026-05-25 17:30:00', 0, NULL, 4, 12500.00),  -- 5h x 2500
+    ('OCC05D', 78, '2026-05-26 10:00:00', '2026-05-26 12:00:00', 0, NULL, 4,  5000.00),  -- 2h x 2500
+    ('OCC007', 25, '2026-05-27 14:00:00', '2026-05-27 19:00:00', 0, NULL, 2, 32500.00),  -- 5h x 6500
     ('OCC009', 26, '2026-05-28 11:30:00', '2026-05-28 14:30:00', 0, NULL, 1, 15000.00);  -- 3h x 5000
 -- 20 ingresos ocasionales cerrados → total 50 cerrados
 
@@ -306,8 +306,8 @@ INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, 
     -- Ocasionales actualmente dentro
     ('OCC002', 27, '2026-05-30 09:30:00', NULL, 0, NULL, 1, NULL),
     ('OCC004', 28, '2026-05-30 10:00:00', NULL, 0, NULL, 1, NULL),
-    ('OCC006', 79, '2026-05-30 10:15:00', NULL, 0, NULL, 2, NULL),
-    ('BIC008', 93, '2026-05-30 10:30:00', NULL, 0, NULL, 3, NULL),
+    ('OCC006', 79, '2026-05-30 10:15:00', NULL, 0, NULL, 4, NULL),
+    ('BIC008', 93, '2026-05-30 10:30:00', NULL, 0, NULL, 5, NULL),
     ('OCC011', 29, '2026-05-30 11:00:00', NULL, 0, NULL, 1, NULL),
     ('OCC013', 30, '2026-05-30 11:30:00', NULL, 0, NULL, 1, NULL);
 
