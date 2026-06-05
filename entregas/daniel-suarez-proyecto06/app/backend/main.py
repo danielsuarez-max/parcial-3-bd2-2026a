@@ -571,21 +571,6 @@ class ClienteIn(BaseModel):
     email: str | None = None
 
 
-@app.post("/clientes")
-def crear_cliente(cliente: ClienteIn):
-    """RF4 — Registra un cliente. El documento debe ser único."""
-    with transaccion() as cur:
-        cur.execute("SELECT id_cliente FROM clientes WHERE documento = %s", (cliente.documento,))
-        if cur.fetchone():
-            raise HTTPException(status_code=409, detail=f"Ya existe un cliente con documento {cliente.documento}.")
-        cur.execute(
-            "INSERT INTO clientes (documento, nombre_completo, telefono, email) VALUES (%s, %s, %s, %s)",
-            (cliente.documento, cliente.nombre_completo, cliente.telefono, cliente.email),
-        )
-        id_cliente = cur.lastrowid
-    return {"mensaje": "Cliente creado", "id_cliente": id_cliente, "nombre_completo": cliente.nombre_completo}
-
-
 @app.get("/clientes")
 def listar_clientes():
     """RF4 — Lista de clientes."""
@@ -614,7 +599,7 @@ class VehiculoMensualIn(BaseModel):
 
 class MensualidadIn(BaseModel):
     """Alta de una mensualidad: cliente + cupo + período + vehículos."""
-    id_cliente: int
+    cliente: ClienteIn
     id_espacio: int
     fecha_inicio: date
     fecha_fin: date
@@ -636,10 +621,22 @@ def crear_mensualidad(m: MensualidadIn):
         raise HTTPException(status_code=422, detail="El monto pagado no puede ser negativo.")
 
     with transaccion() as cur:
-        # 1) Cliente y espacio deben existir
-        cur.execute("SELECT id_cliente FROM clientes WHERE id_cliente = %s", (m.id_cliente,))
-        if not cur.fetchone():
-            raise HTTPException(status_code=404, detail=f"No existe un cliente con id {m.id_cliente}.")
+        # 1) Cliente: lo reutilizamos por documento, o lo creamos si no existe.
+        #    Las tablas siguen separadas (3FN); solo unificamos la OPERACIÓN.
+        cur.execute("SELECT id_cliente FROM clientes WHERE documento = %s", (m.cliente.documento,))
+        fila = cur.fetchone()
+        if fila:
+            id_cliente = fila["id_cliente"]
+            cliente_nuevo = False
+        else:
+            cur.execute(
+                "INSERT INTO clientes (documento, nombre_completo, telefono, email) VALUES (%s, %s, %s, %s)",
+                (m.cliente.documento, m.cliente.nombre_completo, m.cliente.telefono, m.cliente.email),
+            )
+            id_cliente = cur.lastrowid
+            cliente_nuevo = True
+
+        # 2) El espacio debe existir
         cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (m.id_espacio,))
         espacio = cur.fetchone()
         if not espacio:
@@ -684,7 +681,7 @@ def crear_mensualidad(m: MensualidadIn):
             INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado)
             VALUES (%s, %s, %s, %s, %s, 'ACTIVA')
             """,
-            (m.id_cliente, m.id_espacio, m.fecha_inicio, m.fecha_fin, m.monto_pagado),
+            (id_cliente, m.id_espacio, m.fecha_inicio, m.fecha_fin, m.monto_pagado),
         )
         id_mensualidad = cur.lastrowid
         for veh in m.vehiculos:
@@ -699,6 +696,8 @@ def crear_mensualidad(m: MensualidadIn):
     return {
         "mensaje": "Mensualidad creada",
         "id_mensualidad": id_mensualidad,
+        "id_cliente": id_cliente,
+        "cliente_nuevo": cliente_nuevo,
         "numero_espacio": espacio["numero"],
         "vehiculos": [v.placa for v in m.vehiculos],
     }
