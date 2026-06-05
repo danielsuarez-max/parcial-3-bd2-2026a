@@ -731,16 +731,46 @@ def listar_mensualidades():
     return con_total(filas)
 
 
+class CancelacionIn(BaseModel):
+    """Confirmación explícita para cancelar (evita cancelaciones accidentales)."""
+    confirmar: bool = False
+
+
 @app.put("/mensualidades/{id_mensualidad}/cancelar")
-def cancelar_mensualidad(id_mensualidad: int):
-    """RF4 — Cancela una mensualidad y libera su cupo (espacio -> LIBRE)."""
+def cancelar_mensualidad(id_mensualidad: int, datos: CancelacionIn):
+    """
+    RF4 — Cancela una mensualidad y libera su cupo (espacio -> LIBRE).
+    Requiere doble confirmación: la primera llamada (sin 'confirmar': true) solo
+    avisa qué se va a cancelar; hay que reenviar con 'confirmar': true para ejecutar.
+    """
     with transaccion() as cur:
-        cur.execute("SELECT id_espacio, estado FROM mensualidades WHERE id_mensualidad = %s", (id_mensualidad,))
+        cur.execute(
+            """
+            SELECT m.id_espacio, m.estado, e.numero, c.nombre_completo
+            FROM mensualidades m
+            JOIN espacios e  ON e.id_espacio = m.id_espacio
+            JOIN clientes c  ON c.id_cliente = m.id_cliente
+            WHERE m.id_mensualidad = %s
+            """,
+            (id_mensualidad,),
+        )
         men = cur.fetchone()
         if not men:
             raise HTTPException(status_code=404, detail=f"No existe una mensualidad con id {id_mensualidad}.")
         if men["estado"] == "CANCELADA":
             raise HTTPException(status_code=409, detail="La mensualidad ya está cancelada.")
+
+        # Doble confirmación: sin 'confirmar': true no se ejecuta, solo se avisa.
+        if not datos.confirmar:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Vas a cancelar la mensualidad de {men['nombre_completo']} (cupo N° {men['numero']}). "
+                    f"Se liberará el cupo y NO se puede deshacer. "
+                    f'Para confirmar, reenvía la petición con "confirmar": true.'
+                ),
+            )
+
         # No liberar el cupo si hay un vehículo dentro en ese espacio
         cur.execute("SELECT estado FROM espacios WHERE id_espacio = %s", (men["id_espacio"],))
         if cur.fetchone()["estado"] == "OCUPADO":
