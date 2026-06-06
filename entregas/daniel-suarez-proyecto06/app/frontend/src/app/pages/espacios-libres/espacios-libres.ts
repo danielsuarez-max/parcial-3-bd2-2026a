@@ -11,7 +11,8 @@ import { Api, TipoVehiculoItem, EspacioLibre } from '../../services/api';
 export class EspaciosLibresComponent {
   private api = inject(Api);
 
-  tipos = signal<TipoVehiculoItem[]>([]);   // opciones del dropdown
+  // Opciones del dropdown ya AGRUPADAS (los 3 grandes colapsados en una sola).
+  opciones = signal<{ label: string; id_tipo: number }[]>([]);
   idTipoSeleccionado: number | null = null;  // valor enlazado con [(ngModel)]
 
   espacios = signal<EspacioLibre[]>([]);
@@ -20,11 +21,36 @@ export class EspaciosLibresComponent {
   buscado = signal(false);   // ¿ya se hizo al menos una búsqueda?
 
   constructor() {
-    // Al abrir la vista, llenamos el dropdown con los tipos del backend.
+    // Al abrir la vista, pedimos los tipos y los transformamos en opciones agrupadas.
     this.api.getTipos().subscribe({
-      next: (resp) => this.tipos.set(resp.datos),
+      next: (resp) => this.opciones.set(this.agrupar(resp.datos)),
       error: (err) => { console.error(err); this.error.set('No se pudieron cargar los tipos.'); }
     });
+  }
+
+  /**
+   * Carro, Camioneta y Camión comparten los espacios grandes (1-70), así que
+   * consultarlos por separado es redundante: los unimos en una sola opción.
+   * Mandamos el id_tipo de cualquiera de ellos (devuelven los mismos espacios).
+   */
+  private agrupar(tipos: TipoVehiculoItem[]): { label: string; id_tipo: number }[] {
+    const grandes = ['Carro', 'Camioneta', 'Camión'];
+    const opciones: { label: string; id_tipo: number }[] = [];
+
+    const losGrandes = tipos.filter((t) => grandes.includes(t.nombre));
+    if (losGrandes.length > 0) {
+      opciones.push({
+        label: 'Vehículos grandes (Carro · Camioneta · Camión)',
+        id_tipo: losGrandes[0].id_tipo,   // representante del grupo
+      });
+    }
+    // El resto (Moto, Bicicleta...) se agrega tal cual.
+    for (const t of tipos) {
+      if (!grandes.includes(t.nombre)) {
+        opciones.push({ label: t.nombre, id_tipo: t.id_tipo });
+      }
+    }
+    return opciones;
   }
 
   buscar(): void {

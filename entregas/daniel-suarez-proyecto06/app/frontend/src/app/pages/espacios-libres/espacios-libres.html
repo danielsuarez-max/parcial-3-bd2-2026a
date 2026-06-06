@@ -5,8 +5,8 @@
   <!-- [(ngModel)] enlaza el <select> con la propiedad idTipoSeleccionado en ambos sentidos -->
   <select id="tipo" [(ngModel)]="idTipoSeleccionado">
     <option [ngValue]="null" disabled>— Elige un tipo —</option>
-    @for (t of tipos(); track t.id_tipo) {
-      <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+    @for (op of opciones(); track op.id_tipo) {
+      <option [ngValue]="op.id_tipo">{{ op.label }}</option>
     }
   </select>
   <button class="btn" (click)="buscar()" [disabled]="cargando()">Buscar</button>
