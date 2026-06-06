@@ -1,0 +1,23 @@
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.fila label { margin: 0; }
+
+.espacios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.espacio {
+  background: #e6f4ea;
+  color: #0a7d28;
+  border: 1px solid #b7e0c4;
+  border-radius: 4px;
+  padding: 0.4rem 0.7rem;
+  font-weight: 600;
+}

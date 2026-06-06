@@ -1,0 +1,30 @@
+<h2>Espacios libres por tipo (RF5)</h2>
+
+<div class="fila">
+  <label for="tipo">Tipo de vehículo:</label>
+  <!-- [(ngModel)] enlaza el <select> con la propiedad idTipoSeleccionado en ambos sentidos -->
+  <select id="tipo" [(ngModel)]="idTipoSeleccionado">
+    <option [ngValue]="null" disabled>— Elige un tipo —</option>
+    @for (t of tipos(); track t.id_tipo) {
+      <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+    }
+  </select>
+  <button class="btn" (click)="buscar()" [disabled]="cargando()">Buscar</button>
+</div>
+
+@if (cargando()) {
+  <p class="aviso">Buscando…</p>
+} @else if (error()) {
+  <p class="error">⚠️ {{ error() }}</p>
+} @else if (buscado()) {
+  @if (espacios().length === 0) {
+    <p class="aviso">No hay espacios libres para ese tipo de vehículo.</p>
+  } @else {
+    <p class="total">Espacios libres: <strong>{{ espacios().length }}</strong></p>
+    <div class="espacios">
+      @for (e of espacios(); track e.id_espacio) {
+        <span class="espacio">N° {{ e.numero }}</span>
+      }
+    </div>
+  }
+}
