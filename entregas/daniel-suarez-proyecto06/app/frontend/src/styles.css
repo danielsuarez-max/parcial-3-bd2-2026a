@@ -45,6 +45,43 @@ tbody tr:hover           { background: #eef3f8; }
 .btn:hover:not(:disabled) { background: #1a2733; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.btn-sec {
+  background: none;
+  border: 1px solid #2c3e50;
+  color: #2c3e50;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.btn-sec:hover { background: #eef3f8; }
+
+/* Modal (tarjeta centrada sobre fondo oscuro) — reutilizable */
+.modal-overlay {
+  position: fixed;
+  inset: 0;                       /* top/right/bottom/left = 0: cubre la pantalla */
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.5rem 1.75rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+.modal-card h3 { margin: 0 0 0.75rem; }
+.modal-card p  { margin: 0 0 1.25rem; color: #444; }
+.modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
 /* Formularios */
 label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 500; }
 input, select {

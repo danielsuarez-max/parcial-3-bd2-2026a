@@ -5,8 +5,16 @@
   <input id="placa" type="text" [(ngModel)]="filtroPlaca"
          placeholder="Ej. IMQ388" autocomplete="off"
          (keyup.enter)="cargar()" />
+
+  <label for="modalidad">Modalidad:</label>
+  <select id="modalidad" [(ngModel)]="filtroModalidad" (ngModelChange)="cargar()">
+    <option value="">Todas las modalidades</option>
+    <option value="OCASIONAL">Ocasional</option>
+    <option value="MENSUAL">Mensual</option>
+  </select>
+
   <button class="btn" (click)="cargar()" [disabled]="cargando()">Buscar</button>
-  @if (filtroPlaca) {
+  @if (filtroPlaca || filtroModalidad) {
     <button class="btn-sec" (click)="limpiarFiltro()">Ver todo</button>
   }
 </div>

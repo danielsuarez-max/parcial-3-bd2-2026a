@@ -125,10 +125,13 @@ export class Api {
     return this.http.get<Lista<VehiculoDentro>>(`${this.baseUrl}/ingresos/dentro`);
   }
 
-  /** Historial de ingresos (todos). Opcional: filtrar por placa. */
-  getHistorial(placa?: string): Observable<Lista<IngresoHistorial>> {
-    const options = placa ? { params: { placa } } : {};
-    return this.http.get<Lista<IngresoHistorial>>(`${this.baseUrl}/ingresos`, options);
+  /** Historial de ingresos (todos). Opcional: filtrar por placa y/o modalidad. */
+  getHistorial(placa?: string, modalidad?: string): Observable<Lista<IngresoHistorial>> {
+    // Solo agregamos al query los filtros que tengan valor.
+    const params: Record<string, string> = {};
+    if (placa) params['placa'] = placa;
+    if (modalidad) params['modalidad'] = modalidad;
+    return this.http.get<Lista<IngresoHistorial>>(`${this.baseUrl}/ingresos`, { params });
   }
 
   /** Estado de ocupación (libres / ocupados / reservados / %). */

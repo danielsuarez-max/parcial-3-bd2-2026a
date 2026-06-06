@@ -81,10 +81,13 @@ def vehiculos_dentro():
 
 
 @app.get("/ingresos")
-def historial_ingresos(placa: str | None = None):
+def historial_ingresos(placa: str | None = None, modalidad: str | None = None):
     """
     Historial de TODOS los ingresos (dentro y ya salidos), más reciente primero.
-    Opcional: ?placa=ABC123 para ver solo el historial de un vehículo.
+    Filtros opcionales y combinables:
+      - ?placa=ABC123          -> solo ese vehículo.
+      - ?modalidad=OCASIONAL    -> solo ocasionales (es_mensual = 0).
+      - ?modalidad=MENSUAL      -> solo mensuales   (es_mensual = 1).
     A diferencia de /ingresos/dentro, este NO filtra por salida: muestra todo.
     """
     sql = """
@@ -108,12 +111,23 @@ def historial_ingresos(placa: str | None = None):
         LEFT JOIN mensualidades m ON m.id_mensualidad = i.id_mensualidad
         LEFT JOIN clientes c     ON c.id_cliente = m.id_cliente
     """
-    params: tuple = ()
+    # Construimos el WHERE juntando las condiciones que sí lleguen.
+    condiciones: list[str] = []
+    valores: list = []
     if placa:
-        sql += " WHERE i.placa = %s"
-        params = (placa.strip().upper(),)
+        condiciones.append("i.placa = %s")
+        valores.append(placa.strip().upper())
+    if modalidad:
+        m = modalidad.strip().upper()
+        if m == "MENSUAL":
+            condiciones.append("i.es_mensual = 1")
+        elif m == "OCASIONAL":
+            condiciones.append("i.es_mensual = 0")
+        # cualquier otro valor se ignora (no filtra)
+    if condiciones:
+        sql += " WHERE " + " AND ".join(condiciones)
     sql += " ORDER BY i.fecha_hora_entrada DESC"
-    return con_total(run_query(sql, params))
+    return con_total(run_query(sql, tuple(valores)))
 
 # ============================================================
 #  CATÁLOGOS (los usará el frontend para llenar menús/listas)

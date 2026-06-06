@@ -13,6 +13,7 @@ export class HistorialComponent {
   private api = inject(Api);
 
   filtroPlaca = '';                 // texto del buscador (enlazado con ngModel)
+  filtroModalidad = '';             // '' = todas | 'OCASIONAL' | 'MENSUAL'
   ingresos = signal<IngresoHistorial[]>([]);
   cargando = signal(true);
   error = signal<string | null>(null);
@@ -25,7 +26,7 @@ export class HistorialComponent {
     this.cargando.set(true);
     this.error.set(null);
     const placa = this.filtroPlaca.trim().toUpperCase();
-    this.api.getHistorial(placa || undefined).subscribe({
+    this.api.getHistorial(placa || undefined, this.filtroModalidad || undefined).subscribe({
       next: (resp) => {
         this.ingresos.set(resp.datos);
         this.cargando.set(false);
@@ -40,6 +41,7 @@ export class HistorialComponent {
 
   limpiarFiltro(): void {
     this.filtroPlaca = '';
+    this.filtroModalidad = '';
     this.cargar();
   }
 }

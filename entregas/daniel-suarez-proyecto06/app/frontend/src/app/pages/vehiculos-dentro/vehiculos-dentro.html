@@ -47,7 +47,7 @@
           <td>{{ v.cliente_mensual ?? '—' }}</td>
           <td>{{ v.minutos_dentro }}</td>
           <td>
-            <button class="btn-salida" (click)="registrarSalida(v)"
+            <button class="btn-salida" (click)="pedirSalida(v)"
                     [disabled]="saliendoId() === v.id_ingreso">
               {{ saliendoId() === v.id_ingreso ? 'Saliendo…' : 'Registrar salida' }}
             </button>
@@ -56,4 +56,23 @@
       }
     </tbody>
   </table>
+}
+
+<!-- Modal de confirmación de salida -->
+@if (confirmando(); as v) {
+  <div class="modal-overlay" (click)="cancelarSalida()">
+    <!-- $event.stopPropagation: clic dentro de la tarjeta NO cierra el modal -->
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <h3>Confirmar salida</h3>
+      <p>¿Registrar la salida de <strong>{{ v.placa }}</strong>
+         (espacio N° {{ v.numero_espacio }})?</p>
+      <div class="modal-acciones">
+        <button class="btn-sec" (click)="cancelarSalida()">Cancelar</button>
+        <button class="btn" (click)="confirmarSalida()"
+                [disabled]="saliendoId() !== null">
+          {{ saliendoId() !== null ? 'Registrando…' : 'Confirmar salida' }}
+        </button>
+      </div>
+    </div>
+  </div>
 }
