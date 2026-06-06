@@ -24,6 +24,28 @@ export interface Lista<T> {
   datos: T[];
 }
 
+/** Respuesta de GET /ocupacion (una sola fila, no lista). */
+export interface Ocupacion {
+  total_espacios: number;
+  libres: number;
+  ocupados: number;
+  reservados: number;
+  porcentaje_ocupacion: number;
+}
+
+/** Un tipo de vehículo (GET /tipos). */
+export interface TipoVehiculoItem {
+  id_tipo: number;
+  nombre: string;
+  descripcion: string;
+}
+
+/** Un espacio libre (GET /espacios/libres). */
+export interface EspacioLibre {
+  id_espacio: number;
+  numero: number;
+}
+
 @Injectable({ providedIn: 'root' })   // servicio único compartido por toda la app
 export class Api {
   // Dirección base del backend (FastAPI corre en el puerto 8001).
@@ -35,5 +57,24 @@ export class Api {
   /** RF7 — Vehículos actualmente dentro del parqueadero. */
   getVehiculosDentro(): Observable<Lista<VehiculoDentro>> {
     return this.http.get<Lista<VehiculoDentro>>(`${this.baseUrl}/ingresos/dentro`);
+  }
+
+  /** Estado de ocupación (libres / ocupados / reservados / %). */
+  getOcupacion(): Observable<Ocupacion> {
+    return this.http.get<Ocupacion>(`${this.baseUrl}/ocupacion`);
+  }
+
+  /** Catálogo de tipos de vehículo (para llenar dropdowns). */
+  getTipos(): Observable<Lista<TipoVehiculoItem>> {
+    return this.http.get<Lista<TipoVehiculoItem>>(`${this.baseUrl}/tipos`);
+  }
+
+  /** RF5 — Espacios libres compatibles con un tipo de vehículo. */
+  getEspaciosLibres(idTipo: number): Observable<Lista<EspacioLibre>> {
+    // El backend espera ?id_tipo=N como parámetro de consulta (query param).
+    return this.http.get<Lista<EspacioLibre>>(
+      `${this.baseUrl}/espacios/libres`,
+      { params: { id_tipo: idTipo } }
+    );
   }
 }

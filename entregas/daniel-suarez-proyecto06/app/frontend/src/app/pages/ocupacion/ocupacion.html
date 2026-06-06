@@ -1,0 +1,36 @@
+<h2>Ocupación del parqueadero</h2>
+
+<button class="btn" (click)="cargar()" [disabled]="cargando()">🔄 Actualizar</button>
+
+@if (cargando()) {
+  <p class="aviso">Cargando…</p>
+} @else if (error()) {
+  <p class="error">⚠️ {{ error() }}</p>
+} @else if (datos(); as d) {
+  <div class="tarjetas">
+    <div class="tarjeta total-card">
+      <span class="numero">{{ d.total_espacios }}</span>
+      <span class="etiqueta">Total espacios</span>
+    </div>
+    <div class="tarjeta libre">
+      <span class="numero">{{ d.libres }}</span>
+      <span class="etiqueta">Libres</span>
+    </div>
+    <div class="tarjeta ocupado">
+      <span class="numero">{{ d.ocupados }}</span>
+      <span class="etiqueta">Ocupados</span>
+    </div>
+    <div class="tarjeta reservado">
+      <span class="numero">{{ d.reservados }}</span>
+      <span class="etiqueta">Reservados</span>
+    </div>
+    <div class="tarjeta porcentaje">
+      <span class="numero">{{ d.porcentaje_ocupacion }}%</span>
+      <span class="etiqueta">Ocupación</span>
+    </div>
+  </div>
+
+  @if (d.porcentaje_ocupacion >= 90) {
+    <p class="error">🚨 ¡Parqueadero casi lleno!</p>
+  }
+}

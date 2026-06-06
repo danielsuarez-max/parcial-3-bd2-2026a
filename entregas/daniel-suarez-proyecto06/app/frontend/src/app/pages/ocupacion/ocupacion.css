@@ -1,0 +1,30 @@
+.tarjetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.tarjeta {
+  flex: 1 1 140px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.tarjeta .numero {
+  display: block;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+.tarjeta .etiqueta {
+  display: block;
+  margin-top: 0.3rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+.libre      .numero { color: #0a7d28; }
+.ocupado    .numero { color: #b00020; }
+.reservado  .numero { color: #b07d0a; }
+.porcentaje .numero { color: #2c3e50; }
