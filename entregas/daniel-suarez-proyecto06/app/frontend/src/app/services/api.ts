@@ -24,6 +24,21 @@ export interface Lista<T> {
   datos: T[];
 }
 
+/** Una fila del historial de ingresos (GET /ingresos). */
+export interface IngresoHistorial {
+  id_ingreso: number;
+  placa: string;
+  tipo_vehiculo: string;
+  numero_espacio: number;
+  fecha_hora_entrada: string;
+  fecha_hora_salida: string | null;
+  estado: 'DENTRO' | 'SALIÓ';
+  modalidad: 'MENSUAL' | 'OCASIONAL';
+  cliente_mensual: string | null;
+  monto_cobrado: number | null;
+  minutos: number;
+}
+
 /** Respuesta de GET /ocupacion (una sola fila, no lista). */
 export interface Ocupacion {
   total_espacios: number;
@@ -95,6 +110,12 @@ export class Api {
   /** RF7 — Vehículos actualmente dentro del parqueadero. */
   getVehiculosDentro(): Observable<Lista<VehiculoDentro>> {
     return this.http.get<Lista<VehiculoDentro>>(`${this.baseUrl}/ingresos/dentro`);
+  }
+
+  /** Historial de ingresos (todos). Opcional: filtrar por placa. */
+  getHistorial(placa?: string): Observable<Lista<IngresoHistorial>> {
+    const options = placa ? { params: { placa } } : {};
+    return this.http.get<Lista<IngresoHistorial>>(`${this.baseUrl}/ingresos`, options);
   }
 
   /** Estado de ocupación (libres / ocupados / reservados / %). */

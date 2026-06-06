@@ -1,0 +1,54 @@
+<h2>Historial de ingresos</h2>
+
+<div class="fila">
+  <label for="placa">Filtrar por placa:</label>
+  <input id="placa" type="text" [(ngModel)]="filtroPlaca"
+         placeholder="Ej. IMQ388" autocomplete="off"
+         (keyup.enter)="cargar()" />
+  <button class="btn" (click)="cargar()" [disabled]="cargando()">Buscar</button>
+  @if (filtroPlaca) {
+    <button class="btn-sec" (click)="limpiarFiltro()">Ver todo</button>
+  }
+</div>
+
+@if (cargando()) {
+  <p class="aviso">Cargando…</p>
+} @else if (error()) {
+  <p class="error">⚠️ {{ error() }}</p>
+} @else if (ingresos().length === 0) {
+  <p class="aviso">No hay ingresos para mostrar.</p>
+} @else {
+  <p class="total">Registros: <strong>{{ ingresos().length }}</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Placa</th>
+        <th>Tipo</th>
+        <th>Espacio</th>
+        <th>Entrada</th>
+        <th>Salida</th>
+        <th>Estado</th>
+        <th>Modalidad</th>
+        <th>Minutos</th>
+        <th>Cobro</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (i of ingresos(); track i.id_ingreso) {
+        <tr>
+          <td>{{ i.placa }}</td>
+          <td>{{ i.tipo_vehiculo }}</td>
+          <td>{{ i.numero_espacio }}</td>
+          <td>{{ i.fecha_hora_entrada | date:'short' }}</td>
+          <td>{{ i.fecha_hora_salida ? (i.fecha_hora_salida | date:'short') : '—' }}</td>
+          <td>
+            <span class="badge" [class.dentro]="i.estado === 'DENTRO'">{{ i.estado }}</span>
+          </td>
+          <td>{{ i.modalidad }}</td>
+          <td>{{ i.minutos }}</td>
+          <td>{{ i.monto_cobrado != null ? ('$' + i.monto_cobrado) : '—' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

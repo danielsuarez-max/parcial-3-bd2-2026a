@@ -79,6 +79,42 @@ def vehiculos_dentro():
     """
     return con_total(run_query(sql))
 
+
+@app.get("/ingresos")
+def historial_ingresos(placa: str | None = None):
+    """
+    Historial de TODOS los ingresos (dentro y ya salidos), más reciente primero.
+    Opcional: ?placa=ABC123 para ver solo el historial de un vehículo.
+    A diferencia de /ingresos/dentro, este NO filtra por salida: muestra todo.
+    """
+    sql = """
+        SELECT
+            i.id_ingreso,
+            v.placa,
+            tv.nombre                          AS tipo_vehiculo,
+            e.numero                           AS numero_espacio,
+            i.fecha_hora_entrada,
+            i.fecha_hora_salida,
+            CASE WHEN i.fecha_hora_salida IS NULL THEN 'DENTRO' ELSE 'SALIÓ' END AS estado,
+            CASE WHEN i.es_mensual = 1 THEN 'MENSUAL' ELSE 'OCASIONAL' END        AS modalidad,
+            c.nombre_completo                  AS cliente_mensual,
+            i.monto_cobrado,
+            TIMESTAMPDIFF(MINUTE, i.fecha_hora_entrada,
+                          COALESCE(i.fecha_hora_salida, NOW()))  AS minutos
+        FROM ingresos i
+        JOIN vehiculos v        ON v.placa = i.placa
+        JOIN tipo_vehiculo tv  ON tv.id_tipo = v.id_tipo
+        JOIN espacios e         ON e.id_espacio = i.id_espacio
+        LEFT JOIN mensualidades m ON m.id_mensualidad = i.id_mensualidad
+        LEFT JOIN clientes c     ON c.id_cliente = m.id_cliente
+    """
+    params: tuple = ()
+    if placa:
+        sql += " WHERE i.placa = %s"
+        params = (placa.strip().upper(),)
+    sql += " ORDER BY i.fecha_hora_entrada DESC"
+    return con_total(run_query(sql, params))
+
 # ============================================================
 #  CATÁLOGOS (los usará el frontend para llenar menús/listas)
 # ============================================================
