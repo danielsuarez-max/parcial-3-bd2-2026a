@@ -46,6 +46,15 @@ export interface EspacioLibre {
   numero: number;
 }
 
+/** Un espacio con su estado, para el mapa del parqueadero (GET /espacios). */
+export interface EspacioEstado {
+  id_espacio: number;
+  numero: number;
+  estado: 'LIBRE' | 'OCUPADO' | 'RESERVADO';
+  placa: string | null;            // vehículo dentro (si está ocupado)
+  reservado_para: string | null;   // cliente dueño del cupo (si está reservado)
+}
+
 @Injectable({ providedIn: 'root' })   // servicio único compartido por toda la app
 export class Api {
   // Dirección base del backend (FastAPI corre en el puerto 8001).
@@ -62,6 +71,11 @@ export class Api {
   /** Estado de ocupación (libres / ocupados / reservados / %). */
   getOcupacion(): Observable<Ocupacion> {
     return this.http.get<Ocupacion>(`${this.baseUrl}/ocupacion`);
+  }
+
+  /** Mapa del parqueadero: todos los espacios con su estado. */
+  getEspacios(): Observable<Lista<EspacioEstado>> {
+    return this.http.get<Lista<EspacioEstado>>(`${this.baseUrl}/espacios`);
   }
 
   /** Catálogo de tipos de vehículo (para llenar dropdowns). */

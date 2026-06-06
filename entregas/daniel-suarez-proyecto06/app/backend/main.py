@@ -185,6 +185,34 @@ def reporte_mes():
 #  RF5 — Disponibilidad de espacios
 # ============================================================
 
+@app.get("/espacios")
+def listar_espacios():
+    """
+    RF5/RF7 — Mapa del parqueadero: TODOS los espacios con su estado.
+    Para los OCUPADOS trae la placa del vehículo dentro; para los RESERVADOS,
+    el cliente dueño del cupo. Sirve para pintar el plano visual del parqueadero.
+    """
+    sql = """
+        SELECT
+            e.id_espacio,
+            e.numero,
+            e.estado,
+            i.placa            AS placa,            -- vehículo dentro ahora (si lo hay)
+            c.nombre_completo  AS reservado_para    -- dueño del cupo (si está reservado)
+        FROM espacios e
+        LEFT JOIN ingresos i
+               ON i.id_espacio = e.id_espacio
+              AND i.fecha_hora_salida IS NULL       -- solo el ingreso ABIERTO
+        LEFT JOIN mensualidades m
+               ON m.id_espacio = e.id_espacio
+              AND m.estado = 'ACTIVA'
+              AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
+        LEFT JOIN clientes c ON c.id_cliente = m.id_cliente
+        ORDER BY e.numero
+    """
+    return con_total(run_query(sql))
+
+
 @app.get("/espacios/libres")
 def espacios_libres(id_tipo: TipoVehiculo):
     """

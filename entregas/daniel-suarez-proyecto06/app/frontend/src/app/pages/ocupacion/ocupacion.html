@@ -33,4 +33,23 @@
   @if (d.porcentaje_ocupacion >= 90) {
     <p class="error">🚨 ¡Parqueadero casi lleno!</p>
   }
+
+  <!-- Mapa del parqueadero: un cuadro por espacio, coloreado según su estado -->
+  <h3>Mapa del parqueadero</h3>
+  <div class="leyenda">
+    <span class="punto libre"></span> Libre
+    <span class="punto ocupado"></span> Ocupado
+    <span class="punto reservado"></span> Reservado
+  </div>
+  <div class="mapa">
+    @for (e of espacios(); track e.id_espacio) {
+      <div class="celda"
+           [class.libre]="e.estado === 'LIBRE'"
+           [class.ocupado]="e.estado === 'OCUPADO'"
+           [class.reservado]="e.estado === 'RESERVADO'"
+           [title]="tooltip(e)">
+        {{ e.numero }}
+      </div>
+    }
+  </div>
 }
