@@ -14,3 +14,58 @@
   padding: 0.6rem 0.8rem;
   margin: 0.6rem 0;
 }
+
+/* ===== Dropdown personalizado de espacios ===== */
+/* position:relative en el padre + position:absolute en la lista =
+   la lista flota anclada al botón y se superpone a los campos siguientes. */
+.combo { position: relative; width: 100%; }
+
+.combo-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+}
+.combo-trigger:hover { border-color: #2c3e50; }
+.combo-trigger.placeholder { color: #888; }
+
+.flecha { color: #2c3e50; transition: transform 0.15s; }
+.combo.abierto .flecha { transform: rotate(180deg); }
+
+.combo-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  max-height: 240px;     /* ← clave: limita el alto */
+  overflow-y: auto;      /* ← scroll interno; nunca se sale del área blanca */
+  z-index: 50;
+}
+
+.combo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.combo-item:hover { background: #eef3f8; }
+.combo-item.seleccionado { background: #2c3e50; color: #fff; font-weight: 600; }
+
+.check { font-size: 0.85rem; }

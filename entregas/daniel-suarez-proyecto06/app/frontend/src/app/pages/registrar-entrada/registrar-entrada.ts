@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, EspacioLibre, EntradaIn, EntradaOut, MensualidadActiva
@@ -23,6 +23,7 @@ export class RegistrarEntradaComponent {
   // --- Estado para llenar los dropdowns ---
   tipos = signal<TipoVehiculoItem[]>([]);
   espacios = signal<EspacioLibre[]>([]);   // libres del tipo elegido (solo ocasional)
+  espaciosAbierto = signal(false);         // ¿está abierta la lista del dropdown de espacios?
 
   // --- Detección de mensualidad ---
   // null = aún no se consultó; true/false = resultado de la consulta.
@@ -74,6 +75,7 @@ export class RegistrarEntradaComponent {
   /** Al cambiar el tipo: si es ocasional, recarga los espacios libres compatibles. */
   onTipoChange(): void {
     this.idEspacio = null;
+    this.espaciosAbierto.set(false);
     if (this.esMensual() === false) {
       this.recargarEspacios();
     }
@@ -85,6 +87,41 @@ export class RegistrarEntradaComponent {
       next: (resp) => this.espacios.set(resp.datos),
       error: (err) => { console.error(err); this.error.set('No se pudieron cargar los espacios.'); }
     });
+  }
+
+  // ===== Dropdown personalizado de espacios =====
+  // (Sustituye al <select> nativo, cuya lista emergente la dibuja el navegador
+  //  y NO se puede limitar con CSS: por eso se salía de la pantalla.)
+
+  /** Abre/cierra la lista. stopPropagation evita que este mismo clic llegue al
+   *  document y dispare cerrarEspacios(), que la cerraría justo al abrirla. */
+  toggleEspacios(ev: MouseEvent): void {
+    ev.stopPropagation();
+    this.espaciosAbierto.update(v => !v);
+  }
+
+  /** Elige un espacio y cierra la lista. */
+  seleccionarEspacio(id: number): void {
+    this.idEspacio = id;
+    this.espaciosAbierto.set(false);
+  }
+
+  /** Texto del botón: el espacio elegido o el placeholder. */
+  nombreEspacioElegido(): string {
+    const e = this.espacios().find(x => x.id_espacio === this.idEspacio);
+    return e ? `N° ${e.numero}` : '— Elige un espacio —';
+  }
+
+  /** Cierra la lista al hacer clic en cualquier parte del documento (clic fuera). */
+  @HostListener('document:click')
+  cerrarEspacios(): void {
+    this.espaciosAbierto.set(false);
+  }
+
+  /** Cierra la lista con la tecla Escape. */
+  @HostListener('document:keydown.escape')
+  escEspacios(): void {
+    this.espaciosAbierto.set(false);
   }
 
   /** Envía el POST /ingresos. */
@@ -135,6 +172,7 @@ export class RegistrarEntradaComponent {
     this.color = '';
     this.marca = '';
     this.espacios.set([]);
+    this.espaciosAbierto.set(false);
     this.esMensual.set(null);
     this.mensual.set(null);
   }

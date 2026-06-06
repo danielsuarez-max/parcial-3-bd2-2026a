@@ -31,12 +31,30 @@
     } @else if (espacios().length === 0) {
       <p class="aviso">No hay espacios libres para ese tipo.</p>
     } @else {
-      <select id="espacio" [(ngModel)]="idEspacio" name="espacio">
-        <option [ngValue]="null" disabled>— Elige un espacio —</option>
-        @for (e of espacios(); track e.id_espacio) {
-          <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+      <!-- Dropdown propio (no <select> nativo) para poder limitar su alto con scroll -->
+      <div class="combo" [class.abierto]="espaciosAbierto()">
+        <!-- type="button" es CLAVE: sin él, el botón enviaría el formulario -->
+        <button type="button" class="combo-trigger"
+                [class.placeholder]="idEspacio === null"
+                (click)="toggleEspacios($event)">
+          <span>{{ nombreEspacioElegido() }}</span>
+          <span class="flecha">▾</span>
+        </button>
+
+        @if (espaciosAbierto()) {
+          <!-- stopPropagation: clics dentro de la lista no llegan al document -->
+          <ul class="combo-lista" (click)="$event.stopPropagation()">
+            @for (e of espacios(); track e.id_espacio) {
+              <li class="combo-item"
+                  [class.seleccionado]="e.id_espacio === idEspacio"
+                  (click)="seleccionarEspacio(e.id_espacio)">
+                <span>N° {{ e.numero }}</span>
+                @if (e.id_espacio === idEspacio) { <span class="check">✓</span> }
+              </li>
+            }
+          </ul>
         }
-      </select>
+      </div>
     }
   }
 
