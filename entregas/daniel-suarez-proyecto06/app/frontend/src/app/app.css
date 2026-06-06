@@ -1,34 +1,27 @@
-.contenedor {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-  font-family: system-ui, sans-serif;
-  color: #1a1a1a;
-}
-
-h1 { margin-bottom: 0.2rem; }
-h2 { color: #555; font-weight: 500; }
-
-.aviso  { color: #666; font-style: italic; }
-.error  { color: #b00020; font-weight: 600; }
-.total  { margin: 1rem 0; }
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.5rem;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-}
-
-thead th {
+.cabecera {
   background: #2c3e50;
   color: #fff;
+  padding: 1rem 2rem;
 }
+.cabecera h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
 
-tbody tr:nth-child(even) { background: #f6f8fa; }
-tbody tr:hover           { background: #eef3f8; }
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.menu a {
+  color: #cfd8e3;
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+.menu a:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.menu a.activo { background: #fff; color: #2c3e50; font-weight: 600; }
+
+.contenedor {
+  max-width: 1000px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
