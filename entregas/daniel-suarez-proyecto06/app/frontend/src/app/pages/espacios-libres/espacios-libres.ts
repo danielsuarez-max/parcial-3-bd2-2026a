@@ -40,7 +40,7 @@ export class EspaciosLibresComponent {
     const losGrandes = tipos.filter((t) => grandes.includes(t.nombre));
     if (losGrandes.length > 0) {
       opciones.push({
-        label: 'Vehículos grandes (Carro · Camioneta · Camión)',
+        label: 'Vehículos grandes',
         id_tipo: losGrandes[0].id_tipo,   // representante del grupo
       });
     }
