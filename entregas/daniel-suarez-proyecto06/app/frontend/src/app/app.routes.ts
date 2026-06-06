@@ -5,6 +5,7 @@ import { EspaciosLibresComponent } from './pages/espacios-libres/espacios-libres
 import { RegistrarEntradaComponent } from './pages/registrar-entrada/registrar-entrada';
 import { HistorialComponent } from './pages/historial/historial';
 import { TarifasComponent } from './pages/tarifas/tarifas';
+import { MensualidadesComponent } from './pages/mensualidades/mensualidades';
 
 export const routes: Routes = [
   // Ruta vacía ('') -> redirige a /dentro como pantalla de inicio.
@@ -17,6 +18,7 @@ export const routes: Routes = [
   { path: 'entrada', component: RegistrarEntradaComponent },
   { path: 'historial', component: HistorialComponent },
   { path: 'tarifas', component: TarifasComponent },
+  { path: 'mensualidades', component: MensualidadesComponent },
 
   // (aquí iremos sumando: 'entrada', 'salida', 'tarifas', 'mensualidades', 'reportes'...)
 ];

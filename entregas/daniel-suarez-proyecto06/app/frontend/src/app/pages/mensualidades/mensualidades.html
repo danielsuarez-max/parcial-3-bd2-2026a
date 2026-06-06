@@ -1,0 +1,126 @@
+<h2>Mensualidades (RF4)</h2>
+
+<!-- ===== Lista ===== -->
+<div class="fila-top">
+  <button class="btn" (click)="cargar()" [disabled]="cargando()">🔄 Actualizar</button>
+  <button class="btn-sec" (click)="vencer()">Vencer expiradas</button>
+</div>
+
+@if (exito()) { <p class="exito">✅ {{ exito() }}</p> }
+@if (error()) { <p class="error">⚠️ {{ error() }}</p> }
+
+@if (cargando()) {
+  <p class="aviso">Cargando…</p>
+} @else if (mensualidades().length === 0) {
+  <p class="aviso">No hay mensualidades registradas.</p>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th>Cliente</th><th>Cupo</th><th>Desde</th><th>Hasta</th>
+        <th>Monto</th><th>Placas</th><th>Estado</th><th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (m of mensualidades(); track m.id_mensualidad) {
+        <tr>
+          <td>{{ m.cliente }}</td>
+          <td>N° {{ m.numero_espacio }}</td>
+          <td>{{ m.fecha_inicio }}</td>
+          <td>{{ m.fecha_fin }}</td>
+          <td>${{ m.monto_pagado }}</td>
+          <td>{{ m.placas.join(', ') }}</td>
+          <td>
+            <span class="badge"
+                  [class.activa]="m.estado === 'ACTIVA'"
+                  [class.cancelada]="m.estado === 'CANCELADA'">
+              {{ m.estado }}
+            </span>
+          </td>
+          <td>
+            @if (m.estado === 'ACTIVA') {
+              <button class="btn-cancelar" (click)="pedirCancelar(m)">Cancelar</button>
+            } @else { — }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+<!-- ===== Nueva mensualidad ===== -->
+<h3>Nueva mensualidad</h3>
+<form class="formulario" (ngSubmit)="crear()">
+  <fieldset>
+    <legend>Cliente</legend>
+    <label for="doc">Documento</label>
+    <input id="doc" type="text" [(ngModel)]="documento" name="doc" autocomplete="off" />
+    <label for="nom">Nombre completo</label>
+    <input id="nom" type="text" [(ngModel)]="nombre" name="nom" autocomplete="off" />
+    <label for="tel">Teléfono (opcional)</label>
+    <input id="tel" type="text" [(ngModel)]="telefono" name="tel" autocomplete="off" />
+    <label for="mail">Email (opcional)</label>
+    <input id="mail" type="email" [(ngModel)]="email" name="mail" autocomplete="off" />
+  </fieldset>
+
+  <fieldset>
+    <legend>Contrato</legend>
+    <label for="cupo">Cupo (espacio libre)</label>
+    <select id="cupo" [(ngModel)]="idEspacio" name="cupo">
+      <option [ngValue]="null" disabled>— Elige un espacio libre —</option>
+      @for (e of espaciosLibres(); track e.id_espacio) {
+        <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+      }
+    </select>
+    <label for="ini">Fecha inicio</label>
+    <input id="ini" type="date" [(ngModel)]="fechaInicio" name="ini" />
+    <label for="fin">Fecha fin</label>
+    <input id="fin" type="date" [(ngModel)]="fechaFin" name="fin" />
+    <label for="monto">Monto pagado ($)</label>
+    <input id="monto" type="number" min="0" step="1000" [(ngModel)]="montoPagado" name="monto" />
+  </fieldset>
+
+  <fieldset>
+    <legend>Vehículos cubiertos</legend>
+    @for (v of vehiculos(); track $index) {
+      <div class="fila-vehiculo">
+        <input type="text" placeholder="Placa" [(ngModel)]="v.placa"
+               name="placa{{ $index }}" autocomplete="off" />
+        <select [(ngModel)]="v.id_tipo" name="tipo{{ $index }}">
+          <option [ngValue]="null" disabled>— Tipo —</option>
+          @for (t of tipos(); track t.id_tipo) {
+            <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+          }
+        </select>
+        @if (vehiculos().length > 1) {
+          <button type="button" class="btn-quitar" (click)="quitarVehiculo($index)">✕</button>
+        }
+      </div>
+    }
+    <button type="button" class="btn-sec" (click)="agregarVehiculo()">+ Agregar vehículo</button>
+  </fieldset>
+
+  <div class="acciones">
+    <button class="btn" type="submit" [disabled]="enviando()">
+      {{ enviando() ? 'Guardando…' : 'Crear mensualidad' }}
+    </button>
+  </div>
+</form>
+
+<!-- ===== Modal de cancelación ===== -->
+@if (cancelando(); as m) {
+  <div class="modal-overlay" (click)="cerrarCancelar()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <h3>Cancelar mensualidad</h3>
+      <p>¿Cancelar la mensualidad de <strong>{{ m.cliente }}</strong>
+         (cupo N° {{ m.numero_espacio }})? Se liberará el cupo y <strong>no se puede deshacer</strong>.</p>
+      <div class="modal-acciones">
+        <button class="btn-sec" (click)="cerrarCancelar()">Volver</button>
+        <button class="btn-cancelar" (click)="confirmarCancelacion()"
+                [disabled]="cancelandoId() !== null">
+          {{ cancelandoId() !== null ? 'Cancelando…' : 'Sí, cancelar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

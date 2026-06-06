@@ -127,6 +127,42 @@ export interface SalidaOut {
   nota?: string;               // solo mensual ("incluido en la mensualidad")
 }
 
+/** Una fila de la lista de mensualidades (GET /mensualidades). */
+export interface Mensualidad {
+  id_mensualidad: number;
+  cliente: string;
+  numero_espacio: number;
+  estado: 'ACTIVA' | 'VENCIDA' | 'CANCELADA';
+  fecha_inicio: string;
+  fecha_fin: string;
+  monto_pagado: number;
+  placas: string[];
+}
+
+/** Datos del cliente para crear una mensualidad. */
+export interface ClienteIn {
+  documento: string;
+  nombre_completo: string;
+  telefono?: string | null;
+  email?: string | null;
+}
+
+/** Un vehículo cubierto por la mensualidad. */
+export interface VehiculoMensualIn {
+  placa: string;
+  id_tipo: number;
+}
+
+/** Datos para crear una mensualidad (POST /mensualidades). */
+export interface MensualidadIn {
+  cliente: ClienteIn;
+  id_espacio: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  monto_pagado: number;
+  vehiculos: VehiculoMensualIn[];
+}
+
 /** Una mensualidad activa de una placa (GET /vehiculos/{placa}/mensualidad). */
 export interface MensualidadActiva {
   id_mensualidad: number;
@@ -216,5 +252,25 @@ export class Api {
   postSalida(idIngreso: number): Observable<SalidaOut> {
     // No hay cuerpo que enviar; el id va en la URL. Mandamos {} como cuerpo.
     return this.http.post<SalidaOut>(`${this.baseUrl}/ingresos/${idIngreso}/salida`, {});
+  }
+
+  /** RF4 — Lista de mensualidades (con cliente, cupo, placas y estado). */
+  getMensualidades(): Observable<Lista<Mensualidad>> {
+    return this.http.get<Lista<Mensualidad>>(`${this.baseUrl}/mensualidades`);
+  }
+
+  /** RF4 — Crea una mensualidad (cliente + cupo + vehículos) en una transacción. */
+  postMensualidad(m: MensualidadIn): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mensualidades`, m);
+  }
+
+  /** RF4 — Cancela una mensualidad y libera su cupo (confirmamos directo). */
+  cancelarMensualidad(id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/mensualidades/${id}/cancelar`, { confirmar: true });
+  }
+
+  /** RF4 — Barrido: marca VENCIDA las mensualidades activas ya expiradas. */
+  vencerExpiradas(): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mensualidades/vencer-expiradas`, {});
   }
 }
