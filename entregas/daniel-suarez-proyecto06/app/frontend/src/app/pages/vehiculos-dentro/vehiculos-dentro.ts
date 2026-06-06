@@ -1,6 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { Api, VehiculoDentro } from '../../services/api';
+import { Api, VehiculoDentro, SalidaOut } from '../../services/api';
 
 @Component({
   selector: 'app-vehiculos-dentro',
@@ -14,6 +14,10 @@ export class VehiculosDentroComponent {
   vehiculos = signal<VehiculoDentro[]>([]);
   cargando = signal(true);
   error = signal<string | null>(null);
+
+  // Estado del registro de salida
+  saliendoId = signal<number | null>(null);   // id del ingreso que se está cerrando
+  ultimaSalida = signal<SalidaOut | null>(null);  // resultado de la última salida
 
   constructor() {
     this.cargar();
@@ -32,6 +36,30 @@ export class VehiculosDentroComponent {
         console.error(err);
         this.error.set('No se pudo conectar con el backend. ¿Está corriendo en el puerto 8001?');
         this.cargando.set(false);
+      }
+    });
+  }
+
+  /** RF2 — Cierra el ingreso del vehículo y muestra el cobro. */
+  registrarSalida(v: VehiculoDentro): void {
+    const ok = confirm(`¿Registrar la salida de ${v.placa} (espacio N° ${v.numero_espacio})?`);
+    if (!ok) return;
+
+    this.error.set(null);
+    this.ultimaSalida.set(null);
+    this.saliendoId.set(v.id_ingreso);
+
+    this.api.postSalida(v.id_ingreso).subscribe({
+      next: (resp) => {
+        this.ultimaSalida.set(resp);
+        this.saliendoId.set(null);
+        this.cargar();   // refrescamos: el vehículo ya no debe aparecer
+      },
+      error: (err) => {
+        console.error(err);
+        const detail = err?.error?.detail;
+        this.error.set(typeof detail === 'string' ? detail : 'No se pudo registrar la salida.');
+        this.saliendoId.set(null);
       }
     });
   }

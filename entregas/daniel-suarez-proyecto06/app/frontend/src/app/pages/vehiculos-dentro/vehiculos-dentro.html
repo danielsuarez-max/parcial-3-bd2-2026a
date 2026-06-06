@@ -2,6 +2,19 @@
 
 <button class="btn" (click)="cargar()" [disabled]="cargando()">🔄 Actualizar</button>
 
+<!-- Comprobante de la última salida registrada -->
+@if (ultimaSalida(); as s) {
+  <p class="exito">
+    ✅ Salida de <strong>{{ s.placa }}</strong> ({{ s.modalidad }}) ·
+    {{ s.minutos_dentro }} min
+    @if (s.modalidad === 'OCASIONAL') {
+      · {{ s.horas_cobradas }} h cobrada(s) · <strong>Cobro: ${{ s.monto_cobrado }}</strong>
+    } @else {
+      · {{ s.nota }}
+    }
+  </p>
+}
+
 @if (cargando()) {
   <p class="aviso">Cargando…</p>
 } @else if (error()) {
@@ -20,6 +33,7 @@
         <th>Modalidad</th>
         <th>Cliente (mensual)</th>
         <th>Minutos dentro</th>
+        <th>Acción</th>
       </tr>
     </thead>
     <tbody>
@@ -32,6 +46,12 @@
           <td>{{ v.modalidad }}</td>
           <td>{{ v.cliente_mensual ?? '—' }}</td>
           <td>{{ v.minutos_dentro }}</td>
+          <td>
+            <button class="btn-salida" (click)="registrarSalida(v)"
+                    [disabled]="saliendoId() === v.id_ingreso">
+              {{ saliendoId() === v.id_ingreso ? 'Saliendo…' : 'Registrar salida' }}
+            </button>
+          </td>
         </tr>
       }
     </tbody>

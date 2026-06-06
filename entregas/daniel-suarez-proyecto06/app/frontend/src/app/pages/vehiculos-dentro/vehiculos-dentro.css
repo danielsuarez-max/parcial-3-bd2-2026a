@@ -1,2 +1,15 @@
 /* Estilos propios de esta vista (los compartidos están en styles.css global). */
 .btn { margin-bottom: 0.5rem; }
+
+.btn-salida {
+  background: #0a7d28;
+  color: #fff;
+  border: none;
+  padding: 0.35rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.btn-salida:hover:not(:disabled) { background: #086420; }
+.btn-salida:disabled { opacity: 0.5; cursor: not-allowed; }

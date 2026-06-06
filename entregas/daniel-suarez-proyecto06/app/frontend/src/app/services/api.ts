@@ -89,6 +89,19 @@ export interface EntradaOut {
   numero_espacio: number;
 }
 
+/** Respuesta del backend al registrar una salida (RF2). */
+export interface SalidaOut {
+  mensaje: string;
+  id_ingreso: number;
+  placa: string;
+  tipo_vehiculo: string;
+  modalidad: 'MENSUAL' | 'OCASIONAL';
+  minutos_dentro: number;
+  horas_cobradas?: number;     // solo ocasional
+  monto_cobrado: number | null;
+  nota?: string;               // solo mensual ("incluido en la mensualidad")
+}
+
 /** Una mensualidad activa de una placa (GET /vehiculos/{placa}/mensualidad). */
 export interface MensualidadActiva {
   id_mensualidad: number;
@@ -152,5 +165,11 @@ export class Api {
   /** RF1 — Registra la entrada de un vehículo (POST: envía datos en el cuerpo). */
   postIngreso(entrada: EntradaIn): Observable<EntradaOut> {
     return this.http.post<EntradaOut>(`${this.baseUrl}/ingresos`, entrada);
+  }
+
+  /** RF2 — Registra la salida de un ingreso y calcula el cobro. */
+  postSalida(idIngreso: number): Observable<SalidaOut> {
+    // No hay cuerpo que enviar; el id va en la URL. Mandamos {} como cuerpo.
+    return this.http.post<SalidaOut>(`${this.baseUrl}/ingresos/${idIngreso}/salida`, {});
   }
 }
