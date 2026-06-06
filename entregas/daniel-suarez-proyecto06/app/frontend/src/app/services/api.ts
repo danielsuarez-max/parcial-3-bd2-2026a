@@ -55,6 +55,31 @@ export interface TipoVehiculoItem {
   descripcion: string;
 }
 
+/** Una tarifa vigente (GET /tarifas). */
+export interface Tarifa {
+  id_tarifa: number;
+  id_tipo: number;
+  tipo: string;
+  valor_hora: number;
+  vigente_desde: string;
+}
+
+/** Una fila del histórico de tarifas (GET /tarifas/historico). */
+export interface TarifaHistorico {
+  id_tarifa: number;
+  tipo: string;
+  valor_hora: number;
+  vigente_desde: string;
+  activa: number;   // 1 = vigente, 0 = jubilada
+}
+
+/** Datos para crear una tarifa nueva (POST /tarifas). */
+export interface TarifaIn {
+  id_tipo: number;
+  valor_hora: number;
+  vigente_desde?: string | null;
+}
+
 /** Un espacio libre (GET /espacios/libres). */
 export interface EspacioLibre {
   id_espacio: number;
@@ -147,6 +172,23 @@ export class Api {
   /** Catálogo de tipos de vehículo (para llenar dropdowns). */
   getTipos(): Observable<Lista<TipoVehiculoItem>> {
     return this.http.get<Lista<TipoVehiculoItem>>(`${this.baseUrl}/tipos`);
+  }
+
+  /** RF3 — Tarifas vigentes por tipo de vehículo. */
+  getTarifas(): Observable<Lista<Tarifa>> {
+    return this.http.get<Lista<Tarifa>>(`${this.baseUrl}/tarifas`);
+  }
+
+  /** RF3 — Histórico de tarifas de un tipo (vigentes e inactivas). */
+  getTarifaHistorico(idTipo: number): Observable<Lista<TarifaHistorico>> {
+    return this.http.get<Lista<TarifaHistorico>>(
+      `${this.baseUrl}/tarifas/historico`, { params: { id_tipo: idTipo } }
+    );
+  }
+
+  /** RF3 — Crea una tarifa nueva (versiona: jubila la anterior). */
+  postTarifa(tarifa: TarifaIn): Observable<any> {
+    return this.http.post(`${this.baseUrl}/tarifas`, tarifa);
   }
 
   /** RF5 — Espacios libres compatibles con un tipo de vehículo. */

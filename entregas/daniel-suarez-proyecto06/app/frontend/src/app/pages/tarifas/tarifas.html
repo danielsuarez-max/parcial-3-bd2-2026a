@@ -1,0 +1,89 @@
+<h2>Tarifas por tipo de vehículo (RF3)</h2>
+
+<!-- ===== Tarifas vigentes ===== -->
+<h3>Vigentes</h3>
+@if (cargando()) {
+  <p class="aviso">Cargando…</p>
+} @else if (tarifas().length === 0) {
+  <p class="aviso">No hay tarifas configuradas.</p>
+} @else {
+  <table>
+    <thead>
+      <tr><th>Tipo</th><th>Valor/hora</th><th>Vigente desde</th></tr>
+    </thead>
+    <tbody>
+      @for (t of tarifas(); track t.id_tarifa) {
+        <tr>
+          <td>{{ t.tipo }}</td>
+          <td>${{ t.valor_hora }}</td>
+          <td>{{ t.vigente_desde }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+<!-- ===== Nueva tarifa ===== -->
+<h3>Configurar nueva tarifa</h3>
+<p class="nota">La tarifa anterior de ese tipo se jubila automáticamente (queda en el histórico).</p>
+
+<form class="formulario" (ngSubmit)="crearTarifa()">
+  <label for="tipo">Tipo de vehículo</label>
+  <select id="tipo" [(ngModel)]="idTipo" name="tipo">
+    <option [ngValue]="null" disabled>— Elige un tipo —</option>
+    @for (t of tipos(); track t.id_tipo) {
+      <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+    }
+  </select>
+
+  <label for="valor">Valor por hora ($)</label>
+  <input id="valor" type="number" min="0" step="100" [(ngModel)]="valorHora" name="valor" />
+
+  <label for="desde">Vigente desde (opcional)</label>
+  <input id="desde" type="date" [(ngModel)]="vigenteDesde" name="desde" />
+
+  <div class="acciones">
+    <button class="btn" type="submit" [disabled]="enviando()">
+      {{ enviando() ? 'Guardando…' : 'Guardar tarifa' }}
+    </button>
+  </div>
+</form>
+
+@if (exito()) { <p class="exito">✅ {{ exito() }}</p> }
+@if (error()) { <p class="error">⚠️ {{ error() }}</p> }
+
+<!-- ===== Histórico ===== -->
+<h3>Histórico de un tipo</h3>
+<div class="fila">
+  <select [(ngModel)]="idTipoHistorico" (ngModelChange)="verHistorico()">
+    <option [ngValue]="null" disabled>— Elige un tipo —</option>
+    @for (t of tipos(); track t.id_tipo) {
+      <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+    }
+  </select>
+</div>
+
+@if (historicoBuscado()) {
+  @if (historico().length === 0) {
+    <p class="aviso">Ese tipo no tiene tarifas registradas.</p>
+  } @else {
+    <table>
+      <thead>
+        <tr><th>Valor/hora</th><th>Vigente desde</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        @for (h of historico(); track h.id_tarifa) {
+          <tr>
+            <td>${{ h.valor_hora }}</td>
+            <td>{{ h.vigente_desde }}</td>
+            <td>
+              <span class="badge" [class.activa]="h.activa === 1">
+                {{ h.activa === 1 ? 'VIGENTE' : 'Jubilada' }}
+              </span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}
