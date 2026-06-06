@@ -1,0 +1,34 @@
+.contenedor {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+  color: #1a1a1a;
+}
+
+h1 { margin-bottom: 0.2rem; }
+h2 { color: #555; font-weight: 500; }
+
+.aviso  { color: #666; font-style: italic; }
+.error  { color: #b00020; font-weight: 600; }
+.total  { margin: 1rem 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+thead th {
+  background: #2c3e50;
+  color: #fff;
+}
+
+tbody tr:nth-child(even) { background: #f6f8fa; }
+tbody tr:hover           { background: #eef3f8; }
