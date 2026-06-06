@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { VehiculosDentroComponent } from './pages/vehiculos-dentro/vehiculos-dentro';
 import { OcupacionComponent } from './pages/ocupacion/ocupacion';
 import { EspaciosLibresComponent } from './pages/espacios-libres/espacios-libres';
+import { RegistrarEntradaComponent } from './pages/registrar-entrada/registrar-entrada';
 
 export const routes: Routes = [
   // Ruta vacía ('') -> redirige a /dentro como pantalla de inicio.
@@ -11,6 +12,7 @@ export const routes: Routes = [
   { path: 'dentro', component: VehiculosDentroComponent },
   { path: 'ocupacion', component: OcupacionComponent },
   { path: 'espacios-libres', component: EspaciosLibresComponent },
+  { path: 'entrada', component: RegistrarEntradaComponent },
 
   // (aquí iremos sumando: 'entrada', 'salida', 'tarifas', 'mensualidades', 'reportes'...)
 ];

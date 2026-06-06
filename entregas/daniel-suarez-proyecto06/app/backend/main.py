@@ -242,11 +242,12 @@ def mensualidad_de_placa(placa: str):
     Ejemplo:  /vehiculos/BCD890/mensualidad
     """
     sql = """
-        SELECT m.id_mensualidad, m.id_espacio, m.fecha_inicio, m.fecha_fin,
-               c.nombre_completo
+        SELECT m.id_mensualidad, m.id_espacio, e.numero AS numero_espacio,
+               m.fecha_inicio, m.fecha_fin, c.nombre_completo
         FROM mensualidades m
         JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
         JOIN clientes c               ON c.id_cliente = m.id_cliente
+        JOIN espacios e               ON e.id_espacio = m.id_espacio
         WHERE mv.placa = %s
           AND m.estado = 'ACTIVA'
           AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin

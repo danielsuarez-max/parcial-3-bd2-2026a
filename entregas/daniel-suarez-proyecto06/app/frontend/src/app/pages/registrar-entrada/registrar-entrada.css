@@ -1,0 +1,16 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  max-width: 360px;
+}
+.formulario .acciones {
+  margin-top: 1.2rem;
+}
+.banner-mensual {
+  background: #fff4e0;
+  border: 1px solid #f0c97a;
+  color: #8a5a00;
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.6rem 0;
+}

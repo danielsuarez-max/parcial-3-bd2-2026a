@@ -46,11 +46,11 @@ export class OcupacionComponent {
   /** Texto que se muestra al pasar el mouse sobre un cuadro. */
   tooltip(e: EspacioEstado): string {
     if (e.estado === 'OCUPADO') {
-      return `Espacio ${e.numero} · Ocupado` + (e.placa ? ` · ${e.placa}` : '');
+      return 'Ocupado' + (e.placa ? ` · ${e.placa}` : '');
     }
     if (e.estado === 'RESERVADO') {
-      return `Espacio ${e.numero} · Reservado` + (e.reservado_para ? ` · ${e.reservado_para}` : '');
+      return 'Reservado' + (e.reservado_para ? ` · ${e.reservado_para}` : '');
     }
-    return `Espacio ${e.numero} · Libre`;
+    return 'Libre';
   }
 }

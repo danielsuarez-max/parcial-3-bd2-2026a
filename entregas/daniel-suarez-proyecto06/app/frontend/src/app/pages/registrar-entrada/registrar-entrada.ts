@@ -1,0 +1,152 @@
+import { Component, signal, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import {
+  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, EntradaOut, MensualidadActiva
+} from '../../services/api';
+
+@Component({
+  selector: 'app-registrar-entrada',
+  imports: [FormsModule],
+  templateUrl: './registrar-entrada.html',
+  styleUrl: './registrar-entrada.css'
+})
+export class RegistrarEntradaComponent {
+  private api = inject(Api);
+
+  // --- Datos del formulario (enlazados con [(ngModel)]) ---
+  placa = '';
+  idTipo: number | null = null;
+  idEspacio: number | null = null;
+  color = '';
+  marca = '';
+
+  // --- Estado para llenar los dropdowns ---
+  tipos = signal<TipoVehiculoItem[]>([]);
+  espacios = signal<EspacioLibre[]>([]);   // libres del tipo elegido (solo ocasional)
+
+  // --- Detección de mensualidad ---
+  // null = aún no se consultó; true/false = resultado de la consulta.
+  esMensual = signal<boolean | null>(null);
+  mensual = signal<MensualidadActiva | null>(null);
+
+  // --- Estado del envío ---
+  enviando = signal(false);
+  resultado = signal<EntradaOut | null>(null);
+  error = signal<string | null>(null);
+
+  constructor() {
+    // Llenamos el dropdown de tipos al abrir la vista.
+    this.api.getTipos().subscribe({
+      next: (resp) => this.tipos.set(resp.datos),
+      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los tipos.'); }
+    });
+  }
+
+  /** Al salir del campo placa: normaliza a mayúsculas y consulta si es mensual. */
+  onPlacaBlur(): void {
+    this.placa = this.placa.trim().toUpperCase();
+    this.resultado.set(null);
+    this.error.set(null);
+
+    if (!this.placa) {
+      this.esMensual.set(null);
+      this.mensual.set(null);
+      return;
+    }
+
+    this.api.getMensualidadDePlaca(this.placa).subscribe({
+      next: (resp) => {
+        if (resp.datos.length > 0) {
+          // Es mensual: guardamos su cupo y ocultamos el selector de espacio.
+          this.esMensual.set(true);
+          this.mensual.set(resp.datos[0]);
+        } else {
+          // Es ocasional: habrá que elegir espacio según el tipo.
+          this.esMensual.set(false);
+          this.mensual.set(null);
+          this.recargarEspacios();
+        }
+      },
+      error: (err) => { console.error(err); this.error.set('No se pudo verificar la mensualidad.'); }
+    });
+  }
+
+  /** Al cambiar el tipo: si es ocasional, recarga los espacios libres compatibles. */
+  onTipoChange(): void {
+    this.idEspacio = null;
+    if (this.esMensual() === false) {
+      this.recargarEspacios();
+    }
+  }
+
+  private recargarEspacios(): void {
+    if (this.idTipo === null) { this.espacios.set([]); return; }
+    this.api.getEspaciosLibres(this.idTipo).subscribe({
+      next: (resp) => this.espacios.set(resp.datos),
+      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los espacios.'); }
+    });
+  }
+
+  /** Envía el POST /ingresos. */
+  registrar(): void {
+    this.resultado.set(null);
+    this.error.set(null);
+
+    if (!this.placa)        { this.error.set('Escribe la placa.'); return; }
+    if (this.idTipo === null) { this.error.set('Elige el tipo de vehículo.'); return; }
+
+    // Si es mensual, mandamos el cupo reservado (el backend lo usa igual).
+    // Si es ocasional, mandamos el espacio seleccionado.
+    let idEspacio: number | null;
+    if (this.esMensual()) {
+      idEspacio = this.mensual()!.id_espacio;
+    } else {
+      if (this.idEspacio === null) { this.error.set('Elige un espacio.'); return; }
+      idEspacio = this.idEspacio;
+    }
+
+    const entrada: EntradaIn = {
+      placa: this.placa,
+      id_tipo: this.idTipo,
+      id_espacio: idEspacio,
+      color: this.color || null,
+      marca: this.marca || null,
+    };
+
+    this.enviando.set(true);
+    this.api.postIngreso(entrada).subscribe({
+      next: (resp) => {
+        this.resultado.set(resp);
+        this.enviando.set(false);
+        this.limpiar();
+      },
+      error: (err) => {
+        this.error.set(this.extraerError(err));
+        this.enviando.set(false);
+      }
+    });
+  }
+
+  /** Limpia el formulario tras un registro exitoso. */
+  private limpiar(): void {
+    this.placa = '';
+    this.idTipo = null;
+    this.idEspacio = null;
+    this.color = '';
+    this.marca = '';
+    this.espacios.set([]);
+    this.esMensual.set(null);
+    this.mensual.set(null);
+  }
+
+  /**
+   * Saca un mensaje legible del error HTTP.
+   * FastAPI manda { detail: "texto" } o, en validaciones, { detail: [ {msg}, ... ] }.
+   */
+  private extraerError(err: any): string {
+    const detail = err?.error?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) return detail.map((d) => d.msg).join(' · ');
+    return 'No se pudo registrar la entrada.';
+  }
+}

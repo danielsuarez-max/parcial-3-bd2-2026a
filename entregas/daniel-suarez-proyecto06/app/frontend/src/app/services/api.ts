@@ -55,6 +55,35 @@ export interface EspacioEstado {
   reservado_para: string | null;   // cliente dueño del cupo (si está reservado)
 }
 
+/** Datos que enviamos para registrar una entrada (POST /ingresos). */
+export interface EntradaIn {
+  placa: string;
+  id_tipo: number;
+  id_espacio: number;
+  color?: string | null;
+  marca?: string | null;
+}
+
+/** Respuesta del backend al registrar una entrada. */
+export interface EntradaOut {
+  mensaje: string;
+  id_ingreso: number;
+  placa: string;
+  modalidad: 'MENSUAL' | 'OCASIONAL';
+  id_espacio: number;
+  numero_espacio: number;
+}
+
+/** Una mensualidad activa de una placa (GET /vehiculos/{placa}/mensualidad). */
+export interface MensualidadActiva {
+  id_mensualidad: number;
+  id_espacio: number;
+  numero_espacio: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  nombre_completo: string;
+}
+
 @Injectable({ providedIn: 'root' })   // servicio único compartido por toda la app
 export class Api {
   // Dirección base del backend (FastAPI corre en el puerto 8001).
@@ -90,5 +119,17 @@ export class Api {
       `${this.baseUrl}/espacios/libres`,
       { params: { id_tipo: idTipo } }
     );
+  }
+
+  /** ¿La placa tiene mensualidad activa hoy? Lista vacía = es ocasional. */
+  getMensualidadDePlaca(placa: string): Observable<Lista<MensualidadActiva>> {
+    return this.http.get<Lista<MensualidadActiva>>(
+      `${this.baseUrl}/vehiculos/${encodeURIComponent(placa)}/mensualidad`
+    );
+  }
+
+  /** RF1 — Registra la entrada de un vehículo (POST: envía datos en el cuerpo). */
+  postIngreso(entrada: EntradaIn): Observable<EntradaOut> {
+    return this.http.post<EntradaOut>(`${this.baseUrl}/ingresos`, entrada);
   }
 }
