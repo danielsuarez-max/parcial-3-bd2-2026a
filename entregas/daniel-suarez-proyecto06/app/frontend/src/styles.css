@@ -1,1 +1,56 @@
-/* You can add global styles to this file, and also import other style files */
+/* ===== Estilos GLOBALES (aplican a toda la app) ===== */
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+
+h1 { margin-bottom: 0.2rem; }
+h2 { color: #555; font-weight: 500; }
+
+/* Mensajes de estado */
+.aviso  { color: #666; font-style: italic; }
+.error  { color: #b00020; font-weight: 600; }
+.exito  { color: #0a7d28; font-weight: 600; }
+.total  { margin: 1rem 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  background: #fff;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+thead th { background: #2c3e50; color: #fff; }
+tbody tr:nth-child(even) { background: #f6f8fa; }
+tbody tr:hover           { background: #eef3f8; }
+
+/* Botones */
+.btn {
+  background: #2c3e50;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.btn:hover:not(:disabled) { background: #1a2733; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Formularios */
+label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 500; }
+input, select {
+  padding: 0.45rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  min-width: 220px;
+}
