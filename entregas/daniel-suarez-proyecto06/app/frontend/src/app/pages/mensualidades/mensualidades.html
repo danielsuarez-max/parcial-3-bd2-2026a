@@ -98,10 +98,9 @@
           </td>
           <td>
             @if (m.estado === 'ACTIVA') {
-              <div class="acciones-fila">
-                <button class="btn-renovar" (click)="pedirRenovar(m)">Renovar</button>
-                <button class="btn-cancelar" (click)="pedirCancelar(m)">Cancelar</button>
-              </div>
+              <button class="btn-cancelar" (click)="pedirCancelar(m)">Cancelar</button>
+            } @else if (m.estado === 'VENCIDA') {
+              <button class="btn-renovar" (click)="pedirRenovar(m)">Renovar</button>
             } @else { — }
           </td>
         </tr>
@@ -132,9 +131,9 @@
 @if (renovando(); as m) {
   <div class="modal-overlay" (click)="cerrarRenovar()">
     <div class="modal-card" (click)="$event.stopPropagation()">
-      <h3>Renovar mensualidad</h3>
+      <h3>Renovar mensualidad (nuevo período)</h3>
       <p>Cliente: <strong>{{ m.cliente }}</strong> · Cupo: <strong>N° {{ m.numero_espacio }}</strong></p>
-      <p class="calculado">Nuevo vencimiento: <strong>{{ nuevoVencimiento(m) }}</strong></p>
+      <p class="calculado">Inicia hoy: <strong>{{ fechaHoy() }}</strong> · Vence: <strong>{{ vencimientoRenovacion() }}</strong></p>
 
       <label>Vehículos cubiertos</label>
       @for (v of renovVehiculos(); track $index) {

@@ -218,9 +218,14 @@ export class MensualidadesComponent {
     );
   }
 
-  /** Nuevo vencimiento = fecha_fin actual + 1 mes. */
-  nuevoVencimiento(m: Mensualidad): string {
-    const d = new Date(m.fecha_fin + 'T00:00:00');
+  /** Fecha de hoy (la renovación crea un nuevo período que inicia hoy). */
+  fechaHoy(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  /** Vencimiento del nuevo período = hoy + 1 mes. */
+  vencimientoRenovacion(): string {
+    const d = new Date();
     const dia = d.getDate();
     d.setMonth(d.getMonth() + 1);
     if (d.getDate() !== dia) d.setDate(0);
@@ -240,7 +245,7 @@ export class MensualidadesComponent {
     this.renovandoId.set(m.id_mensualidad);
     this.api.renovarMensualidad(m.id_mensualidad, vehs as { placa: string; id_tipo: number }[]).subscribe({
       next: (resp) => {
-        this.exito.set(`Mensualidad de ${m.cliente} renovada hasta ${resp.nueva_fecha_fin} (mes $${resp.monto_mes}; total $${resp.monto_total}).`);
+        this.exito.set(`Mensualidad de ${m.cliente} renovada: nuevo período hasta ${resp.fecha_fin} (monto $${resp.monto}).`);
         this.renovandoId.set(null);
         this.renovando.set(null);
         this.cargar();
