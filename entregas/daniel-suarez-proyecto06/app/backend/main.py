@@ -868,6 +868,109 @@ def listar_mensualidades():
     return con_total(filas)
 
 
+@app.get("/mensualidades/{id_mensualidad}/vehiculos")
+def vehiculos_de_mensualidad(id_mensualidad: int):
+    """RF4 — Vehículos cubiertos por una mensualidad (para precargar la renovación)."""
+    sql = """
+        SELECT v.placa, v.id_tipo, tv.nombre AS tipo
+        FROM mensualidad_vehiculo mv
+        JOIN vehiculos v       ON v.placa = mv.placa
+        JOIN tipo_vehiculo tv ON tv.id_tipo = v.id_tipo
+        WHERE mv.id_mensualidad = %s
+        ORDER BY v.placa
+    """
+    return con_total(run_query(sql, (id_mensualidad,)))
+
+
+class RenovacionIn(BaseModel):
+    """Renovación: el set de vehículos que cubrirá el mes renovado."""
+    vehiculos: list[VehiculoMensualIn]
+
+
+@app.post("/mensualidades/{id_mensualidad}/renovar")
+def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
+    """
+    RF4 — Renueva (extiende) una mensualidad ACTIVA un mes más.
+      - fecha_fin += 1 mes; monto_pagado += monto del nuevo mes.
+      - Permite editar los vehículos cubiertos (reemplaza el set).
+      - El monto del mes se calcula desde el catálogo tarifa_mensual.
+    """
+    if not datos.vehiculos:
+        raise HTTPException(status_code=422, detail="La renovación debe cubrir al menos un vehículo.")
+
+    with transaccion() as cur:
+        # 1) La mensualidad debe existir y estar ACTIVA
+        cur.execute(
+            "SELECT estado, fecha_fin FROM mensualidades WHERE id_mensualidad = %s",
+            (id_mensualidad,),
+        )
+        men = cur.fetchone()
+        if not men:
+            raise HTTPException(status_code=404, detail=f"No existe una mensualidad con id {id_mensualidad}.")
+        if men["estado"] != "ACTIVA":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Solo se pueden renovar mensualidades ACTIVAS (esta está {men['estado']}).",
+            )
+
+        # 2) Crear los vehículos que no existan (validando formato y coherencia de tipo)
+        for veh in datos.vehiculos:
+            cur.execute("SELECT id_tipo FROM vehiculos WHERE placa = %s", (veh.placa,))
+            existente = cur.fetchone()
+            if existente:
+                if existente["id_tipo"] != veh.id_tipo:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"La placa {veh.placa} ya está registrada con otro tipo de vehículo.",
+                    )
+            else:
+                cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (veh.id_tipo,))
+                tipo = cur.fetchone()
+                if not tipo:
+                    raise HTTPException(status_code=404, detail=f"No existe un tipo de vehículo con id {veh.id_tipo}.")
+                validar_formato_placa(veh.placa, tipo["nombre"])
+                cur.execute("INSERT INTO vehiculos (placa, id_tipo) VALUES (%s, %s)", (veh.placa, veh.id_tipo))
+
+        # 3) Calcular el monto del nuevo mes desde el catálogo
+        monto_mes = 0
+        for veh in datos.vehiculos:
+            cur.execute("SELECT valor_mes FROM tarifa_mensual WHERE id_tipo = %s", (veh.id_tipo,))
+            fila_tarifa = cur.fetchone()
+            if not fila_tarifa:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"No hay tarifa mensual configurada para el tipo con id {veh.id_tipo}.",
+                )
+            monto_mes += float(fila_tarifa["valor_mes"])
+
+        # 4) Reemplazar el set de vehículos cubiertos
+        cur.execute("DELETE FROM mensualidad_vehiculo WHERE id_mensualidad = %s", (id_mensualidad,))
+        for veh in datos.vehiculos:
+            cur.execute(
+                "INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES (%s, %s)",
+                (id_mensualidad, veh.placa),
+            )
+
+        # 5) Extender el contrato un mes y sumar el monto
+        nueva_fecha_fin = sumar_un_mes(men["fecha_fin"])
+        cur.execute(
+            "UPDATE mensualidades SET fecha_fin = %s, monto_pagado = monto_pagado + %s WHERE id_mensualidad = %s",
+            (nueva_fecha_fin, monto_mes, id_mensualidad),
+        )
+
+        # Leer el total acumulado para devolverlo
+        cur.execute("SELECT monto_pagado FROM mensualidades WHERE id_mensualidad = %s", (id_mensualidad,))
+        monto_total = float(cur.fetchone()["monto_pagado"])
+
+    return {
+        "mensaje": "Mensualidad renovada",
+        "id_mensualidad": id_mensualidad,
+        "nueva_fecha_fin": str(nueva_fecha_fin),
+        "monto_mes": monto_mes,
+        "monto_total": monto_total,
+    }
+
+
 class CancelacionIn(BaseModel):
     """Confirmación explícita para cancelar (evita cancelaciones accidentales)."""
     confirmar: bool = False

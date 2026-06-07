@@ -169,6 +169,13 @@ export interface TarifaMensual {
   valor_mes: number;
 }
 
+/** Un vehículo cubierto por una mensualidad (GET /mensualidades/{id}/vehiculos). */
+export interface VehiculoDeMensualidad {
+  placa: string;
+  id_tipo: number;
+  tipo: string;
+}
+
 /** Una mensualidad activa de una placa (GET /vehiculos/{placa}/mensualidad). */
 export interface MensualidadActiva {
   id_mensualidad: number;
@@ -278,6 +285,16 @@ export class Api {
   /** RF4 — Cancela una mensualidad y libera su cupo (confirmamos directo). */
   cancelarMensualidad(id: number): Observable<any> {
     return this.http.put(`${this.baseUrl}/mensualidades/${id}/cancelar`, { confirmar: true });
+  }
+
+  /** RF4 — Vehículos cubiertos por una mensualidad (para precargar la renovación). */
+  getVehiculosDeMensualidad(id: number): Observable<Lista<VehiculoDeMensualidad>> {
+    return this.http.get<Lista<VehiculoDeMensualidad>>(`${this.baseUrl}/mensualidades/${id}/vehiculos`);
+  }
+
+  /** RF4 — Renueva (extiende +1 mes) una mensualidad con el set de vehículos dado. */
+  renovarMensualidad(id: number, vehiculos: VehiculoMensualIn[]): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mensualidades/${id}/renovar`, { vehiculos });
   }
 
   /** RF4 — Barrido: marca VENCIDA las mensualidades activas ya expiradas. */

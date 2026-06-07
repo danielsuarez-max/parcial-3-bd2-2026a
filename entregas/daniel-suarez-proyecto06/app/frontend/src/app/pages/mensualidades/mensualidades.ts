@@ -4,6 +4,8 @@ import {
   Api, TipoVehiculoItem, EspacioEstado, Mensualidad, MensualidadIn, TarifaMensual
 } from '../../services/api';
 
+type FilaVehiculo = { placa: string; id_tipo: number | null };
+
 @Component({
   selector: 'app-mensualidades',
   imports: [FormsModule],
@@ -40,6 +42,11 @@ export class MensualidadesComponent {
   // --- Modal de cancelación ---
   cancelando = signal<Mensualidad | null>(null);
   cancelandoId = signal<number | null>(null);
+
+  // --- Modal de renovación ---
+  renovando = signal<Mensualidad | null>(null);
+  renovVehiculos = signal<FilaVehiculo[]>([]);
+  renovandoId = signal<number | null>(null);
 
   constructor() {
     this.cargar();
@@ -177,6 +184,73 @@ export class MensualidadesComponent {
     this.api.vencerExpiradas().subscribe({
       next: (resp) => { this.exito.set(`Barrido completado: ${resp.mensualidades_vencidas} mensualidad(es) vencida(s).`); this.cargar(); },
       error: (err) => { console.error(err); this.error.set('No se pudo ejecutar el barrido.'); }
+    });
+  }
+
+  // ----- Renovación (modal) -----
+  pedirRenovar(m: Mensualidad): void {
+    this.error.set(null);
+    this.renovando.set(m);
+    this.renovVehiculos.set([]);
+    // Precargamos los vehículos actuales de esa mensualidad.
+    this.api.getVehiculosDeMensualidad(m.id_mensualidad).subscribe({
+      next: (resp) => this.renovVehiculos.set(
+        resp.datos.map((v) => ({ placa: v.placa, id_tipo: v.id_tipo }))
+      ),
+      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los vehículos.'); }
+    });
+  }
+  cerrarRenovar(): void { this.renovando.set(null); }
+
+  agregarVehRenov(): void {
+    this.renovVehiculos.update((v) => [...v, { placa: '', id_tipo: null }]);
+  }
+  quitarVehRenov(i: number): void {
+    this.renovVehiculos.update((v) => v.filter((_, idx) => idx !== i));
+  }
+
+  /** Monto del mes a renovar = suma del valor mensual del set editado. */
+  montoRenovacion(): number {
+    const mapa = this.valorMesPorTipo();
+    return this.renovVehiculos().reduce(
+      (suma, v) => suma + (v.id_tipo !== null ? (mapa.get(v.id_tipo) ?? 0) : 0),
+      0
+    );
+  }
+
+  /** Nuevo vencimiento = fecha_fin actual + 1 mes. */
+  nuevoVencimiento(m: Mensualidad): string {
+    const d = new Date(m.fecha_fin + 'T00:00:00');
+    const dia = d.getDate();
+    d.setMonth(d.getMonth() + 1);
+    if (d.getDate() !== dia) d.setDate(0);
+    return d.toISOString().slice(0, 10);
+  }
+
+  confirmarRenovacion(): void {
+    const m = this.renovando();
+    if (!m) return;
+
+    const vehs = this.renovVehiculos().map((v) => ({ placa: v.placa.trim().toUpperCase(), id_tipo: v.id_tipo }));
+    if (vehs.length === 0 || vehs.some((v) => !v.placa || v.id_tipo === null)) {
+      this.error.set('Cada vehículo necesita placa y tipo (al menos uno).'); return;
+    }
+
+    this.error.set(null);
+    this.renovandoId.set(m.id_mensualidad);
+    this.api.renovarMensualidad(m.id_mensualidad, vehs as { placa: string; id_tipo: number }[]).subscribe({
+      next: (resp) => {
+        this.exito.set(`Mensualidad de ${m.cliente} renovada hasta ${resp.nueva_fecha_fin} (mes $${resp.monto_mes}; total $${resp.monto_total}).`);
+        this.renovandoId.set(null);
+        this.renovando.set(null);
+        this.cargar();
+      },
+      error: (err) => {
+        console.error(err);
+        this.error.set(this.extraerError(err));
+        this.renovandoId.set(null);
+        this.renovando.set(null);
+      }
     });
   }
 

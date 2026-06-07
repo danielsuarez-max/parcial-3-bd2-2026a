@@ -42,6 +42,8 @@ h3 { margin-top: 1.8rem; }
   flex: 0 0 auto;
 }
 
+.acciones-fila { display: flex; gap: 0.4rem; }
+
 .btn-cancelar {
   background: #b00020;
   color: #fff;
@@ -53,6 +55,18 @@ h3 { margin-top: 1.8rem; }
 }
 .btn-cancelar:hover:not(:disabled) { background: #8a0019; }
 .btn-cancelar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-renovar {
+  background: #1565c0;
+  color: #fff;
+  border: none;
+  padding: 0.35rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.btn-renovar:hover:not(:disabled) { background: #0d47a1; }
+.btn-renovar:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Badges de estado */
 .badge {
