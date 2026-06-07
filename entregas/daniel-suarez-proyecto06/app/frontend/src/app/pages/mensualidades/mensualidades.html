@@ -16,28 +16,12 @@
   </fieldset>
 
   <fieldset>
-    <legend>Contrato</legend>
-    <label for="cupo">Cupo (espacio libre)</label>
-    <select id="cupo" [(ngModel)]="idEspacio" name="cupo">
-      <option [ngValue]="null" disabled>— Elige un espacio libre —</option>
-      @for (e of espaciosLibres(); track e.id_espacio) {
-        <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
-      }
-    </select>
-    <label for="ini">Fecha inicio</label>
-    <input id="ini" type="date" [(ngModel)]="fechaInicio" name="ini" />
-
-    <p class="calculado">Vence: <strong>{{ fechaFinEstimada() }}</strong></p>
-    <p class="calculado">Monto a pagar: <strong>${{ montoEstimado() }}</strong></p>
-  </fieldset>
-
-  <fieldset>
     <legend>Vehículos cubiertos</legend>
     @for (v of vehiculos(); track $index) {
       <div class="fila-vehiculo">
         <input type="text" placeholder="Placa" [(ngModel)]="v.placa"
                name="placa{{ $index }}" autocomplete="off" />
-        <select [(ngModel)]="v.id_tipo" name="tipo{{ $index }}">
+        <select [(ngModel)]="v.id_tipo" name="tipo{{ $index }}" (ngModelChange)="onVehTipoChange()">
           <option [ngValue]="null" disabled>— Tipo —</option>
           @for (t of tipos(); track t.id_tipo) {
             <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
@@ -49,6 +33,30 @@
       </div>
     }
     <button type="button" class="btn-sec" (click)="agregarVehiculo()">+ Agregar vehículo</button>
+
+    <!-- El cupo depende del tipo de vehículo, por eso va aquí -->
+    <label for="cupo">Cupo (según el tipo)</label>
+    @if (!hayTipoSeleccionado()) {
+      <p class="aviso">Elige el tipo de vehículo para ver los cupos disponibles.</p>
+    } @else if (espaciosLibres().length === 0) {
+      <p class="aviso">No hay cupo compatible con esa combinación de vehículos.</p>
+    } @else {
+      <select id="cupo" [(ngModel)]="idEspacio" name="cupo">
+        <option [ngValue]="null" disabled>— Elige un cupo —</option>
+        @for (e of espaciosLibres(); track e.id_espacio) {
+          <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+        }
+      </select>
+    }
+  </fieldset>
+
+  <fieldset>
+    <legend>Contrato</legend>
+    <label for="ini">Fecha inicio</label>
+    <input id="ini" type="date" [(ngModel)]="fechaInicio" name="ini" />
+
+    <p class="calculado">Vence: <strong>{{ fechaFinEstimada() }}</strong></p>
+    <p class="calculado">Monto a pagar: <strong>${{ fmt(montoEstimado()) }}</strong></p>
   </fieldset>
 
   <div class="acciones">
@@ -87,7 +95,7 @@
           <td>N° {{ m.numero_espacio }}</td>
           <td>{{ m.fecha_inicio }}</td>
           <td>{{ m.fecha_fin }}</td>
-          <td>${{ m.monto_pagado }}</td>
+          <td>${{ fmt(m.monto_pagado) }}</td>
           <td>{{ m.placas.join(', ') }}</td>
           <td>
             <span class="badge"
@@ -153,7 +161,7 @@
       }
       <button type="button" class="btn-sec" (click)="agregarVehRenov()">+ Agregar vehículo</button>
 
-      <p class="calculado">Monto del mes: <strong>${{ montoRenovacion() }}</strong></p>
+      <p class="calculado">Monto del mes: <strong>${{ fmt(montoRenovacion()) }}</strong></p>
 
       <div class="modal-acciones">
         <button class="btn-sec" (click)="cerrarRenovar()">Volver</button>

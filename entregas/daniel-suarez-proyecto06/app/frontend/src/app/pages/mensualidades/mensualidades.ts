@@ -1,7 +1,8 @@
 import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import {
-  Api, TipoVehiculoItem, EspacioEstado, Mensualidad, MensualidadIn, TarifaMensual
+  Api, TipoVehiculoItem, EspacioLibre, Mensualidad, MensualidadIn, TarifaMensual
 } from '../../services/api';
 
 type FilaVehiculo = { placa: string; id_tipo: number | null };
@@ -21,7 +22,8 @@ export class MensualidadesComponent {
 
   // --- Catálogos para el formulario ---
   tipos = signal<TipoVehiculoItem[]>([]);
-  espaciosLibres = signal<EspacioEstado[]>([]);
+  // Cupos compatibles con los tipos de vehículo elegidos (se recalcula dinámicamente).
+  espaciosLibres = signal<EspacioLibre[]>([]);
   // Valor mensual por tipo (id_tipo -> valor_mes), para calcular el monto en pantalla.
   valorMesPorTipo = signal<Map<number, number>>(new Map());
 
@@ -91,19 +93,62 @@ export class MensualidadesComponent {
       next: (resp) => { this.mensualidades.set(resp.datos); this.cargando.set(false); },
       error: (err) => { console.error(err); this.error.set('No se pudieron cargar las mensualidades.'); this.cargando.set(false); }
     });
-    // Espacios libres para el dropdown del cupo (filtramos del mapa completo).
-    this.api.getEspacios().subscribe({
-      next: (resp) => this.espaciosLibres.set(resp.datos.filter((e) => e.estado === 'LIBRE')),
-      error: (err) => console.error(err)
-    });
+    // El cupo ya NO se carga aquí: depende de los tipos elegidos (ver recargarCupos()).
+  }
+
+  /** Formatea un número con separador de miles (es-CO): 300000 -> "300.000". */
+  fmt(n: number): string {
+    return (n ?? 0).toLocaleString('es-CO');
+  }
+
+  /** ¿Hay al menos un vehículo con tipo elegido? (para mostrar el cupo). */
+  hayTipoSeleccionado(): boolean {
+    return this.vehiculos().some((v) => v.id_tipo !== null);
   }
 
   // ----- Lista dinámica de vehículos -----
   agregarVehiculo(): void {
     this.vehiculos.update((v) => [...v, { placa: '', id_tipo: null }]);
+    this.recargarCupos();
   }
   quitarVehiculo(i: number): void {
     this.vehiculos.update((v) => v.filter((_, idx) => idx !== i));
+    this.recargarCupos();
+  }
+  /** El select de tipo de un vehículo cambió: recalcular los cupos compatibles. */
+  onVehTipoChange(): void {
+    this.recargarCupos();
+  }
+
+  /**
+   * Recalcula los cupos disponibles = espacios LIBRES compatibles con TODOS los
+   * tipos de vehículo elegidos (intersección). Si no hay tipos, lista vacía.
+   */
+  recargarCupos(): void {
+    const tipos = [...new Set(
+      this.vehiculos().map((v) => v.id_tipo).filter((t): t is number => t !== null)
+    )];
+    if (tipos.length === 0) {
+      this.espaciosLibres.set([]);
+      this.idEspacio = null;
+      return;
+    }
+    // Pedimos los libres por cada tipo y cruzamos (intersección por id_espacio).
+    forkJoin(tipos.map((t) => this.api.getEspaciosLibres(t))).subscribe({
+      next: (resps) => {
+        let inter = resps[0].datos;
+        for (let i = 1; i < resps.length; i++) {
+          const ids = new Set(resps[i].datos.map((e) => e.id_espacio));
+          inter = inter.filter((e) => ids.has(e.id_espacio));
+        }
+        this.espaciosLibres.set(inter);
+        // Si el cupo elegido ya no es compatible, lo reseteamos.
+        if (this.idEspacio !== null && !inter.some((e) => e.id_espacio === this.idEspacio)) {
+          this.idEspacio = null;
+        }
+      },
+      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los cupos.'); }
+    });
   }
 
   // ----- Crear -----
@@ -138,7 +183,7 @@ export class MensualidadesComponent {
     this.enviando.set(true);
     this.api.postMensualidad(m).subscribe({
       next: (resp) => {
-        this.exito.set(`Mensualidad creada (cupo N° ${resp.numero_espacio}, vence ${resp.fecha_fin}, monto $${resp.monto}) con placas: ${resp.vehiculos.join(', ')}.`);
+        this.exito.set(`Mensualidad creada (cupo N° ${resp.numero_espacio}, vence ${resp.fecha_fin}, monto $${this.fmt(resp.monto)}) con placas: ${resp.vehiculos.join(', ')}.`);
         this.enviando.set(false);
         this.limpiar();
         this.cargar();
@@ -245,7 +290,7 @@ export class MensualidadesComponent {
     this.renovandoId.set(m.id_mensualidad);
     this.api.renovarMensualidad(m.id_mensualidad, vehs as { placa: string; id_tipo: number }[]).subscribe({
       next: (resp) => {
-        this.exito.set(`Mensualidad de ${m.cliente} renovada: nuevo período hasta ${resp.fecha_fin} (monto $${resp.monto}).`);
+        this.exito.set(`Mensualidad de ${m.cliente} renovada: nuevo período hasta ${resp.fecha_fin} (monto $${this.fmt(resp.monto)}).`);
         this.renovandoId.set(null);
         this.renovando.set(null);
         this.cargar();

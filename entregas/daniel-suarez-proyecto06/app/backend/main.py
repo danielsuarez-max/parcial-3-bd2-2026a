@@ -51,6 +51,27 @@ def sumar_un_mes(d: date) -> date:
     return date(anio, mes, min(d.day, ultimo_dia))
 
 
+def validar_cupo_admite_tipos(cur, id_espacio, numero_espacio, vehiculos):
+    """
+    Verifica que el espacio admita TODOS los tipos de vehículo cubiertos
+    (según espacio_tipo_permitido). Si alguno no es compatible, lanza 409.
+    Refuerza en el servidor la regla 'el cupo depende del tipo'.
+    """
+    for veh in vehiculos:
+        cur.execute(
+            "SELECT 1 FROM espacio_tipo_permitido WHERE id_espacio = %s AND id_tipo = %s",
+            (id_espacio, veh.id_tipo),
+        )
+        if not cur.fetchone():
+            cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (veh.id_tipo,))
+            nom = cur.fetchone()
+            raise HTTPException(
+                status_code=409,
+                detail=f"El cupo N° {numero_espacio} no admite vehículos de tipo "
+                       f"'{nom['nombre'] if nom else veh.id_tipo}'.",
+            )
+
+
 # Catálogo fijo de tipos de vehículo (coincide con los IDs de la tabla tipo_vehiculo).
 # Al usarlo como tipo de un campo, Swagger lo muestra como un MENÚ DESPLEGABLE
 # y solo acepta estos valores -> imposible mandar un id_tipo inválido.
@@ -762,6 +783,9 @@ def crear_mensualidad(m: MensualidadIn):
         if not espacio:
             raise HTTPException(status_code=404, detail=f"No existe un espacio con id {m.id_espacio}.")
 
+        # 2b) El cupo debe admitir TODOS los tipos cubiertos (espacio_tipo_permitido)
+        validar_cupo_admite_tipos(cur, m.id_espacio, espacio["numero"], m.vehiculos)
+
         # 2) El cupo no puede estar ya asignado a otra mensualidad activa que se solape
         cur.execute(
             """
@@ -942,6 +966,9 @@ def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
                 status_code=409,
                 detail=f"El cupo N° {espacio['numero']} ya está asignado a otra mensualidad activa.",
             )
+
+        # 3b) El cupo debe admitir TODOS los tipos cubiertos
+        validar_cupo_admite_tipos(cur, id_espacio, espacio["numero"], datos.vehiculos)
 
         # 4) Crear los vehículos que no existan (validando formato y coherencia de tipo)
         for veh in datos.vehiculos:
