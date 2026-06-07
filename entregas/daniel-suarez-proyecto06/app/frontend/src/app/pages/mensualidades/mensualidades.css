@@ -16,6 +16,12 @@ h3 { margin-top: 1.8rem; }
 .formulario legend { font-weight: 600; color: #2c3e50; padding: 0 0.4rem; }
 .formulario .acciones { margin-top: 0.5rem; }
 
+.calculado {
+  margin: 0.5rem 0 0;
+  color: #2c3e50;
+}
+.calculado .hint { color: #888; font-size: 0.85rem; font-weight: 400; }
+
 .fila-vehiculo {
   display: flex;
   gap: 0.5rem;

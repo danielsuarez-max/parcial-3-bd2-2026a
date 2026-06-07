@@ -48,6 +48,23 @@ CREATE TABLE tarifas (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
+-- 2b) tarifa_mensual — Valor del mes estipulado por tipo de vehículo
+--     Catálogo simple (un valor vigente por tipo). El monto de una mensualidad
+--     se calcula como la SUMA del valor_mes de los vehículos que cubre, y se
+--     guarda en mensualidades.monto_pagado (así el histórico no cambia aunque
+--     luego se ajusten estos precios).
+-- =========================================================================
+CREATE TABLE tarifa_mensual (
+    id_tipo   INT           NOT NULL,
+    valor_mes DECIMAL(10,2) NOT NULL,
+    CONSTRAINT pk_tarifa_mensual PRIMARY KEY (id_tipo),
+    CONSTRAINT fk_tarifa_mensual_tipo FOREIGN KEY (id_tipo)
+        REFERENCES tipo_vehiculo (id_tipo)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT ck_valor_mes_no_negativo CHECK (valor_mes >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================================================================
 -- 3) espacios — Los 100 espacios numerados del parqueadero
 --    Los tipos de vehículo que cada espacio acepta se manejan en la tabla
 --    puente espacio_tipo_permitido (relación N-M), porque un mismo espacio

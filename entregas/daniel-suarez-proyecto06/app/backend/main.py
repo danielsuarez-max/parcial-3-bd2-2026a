@@ -4,6 +4,7 @@ Define los endpoints HTTP que el frontend (Angular) consumirá.
 Cada endpoint ejecuta una consulta en la BD y devuelve JSON.
 """
 import re
+import calendar
 from datetime import date
 from enum import IntEnum
 
@@ -33,6 +34,21 @@ def con_total(filas):
     """Envuelve una lista en {total, datos}: así el frontend recibe de una
     vez cuántos registros hay, sin tener que contarlos."""
     return {"total": len(filas), "datos": filas}
+
+
+def sumar_un_mes(d: date) -> date:
+    """
+    Devuelve la fecha del mismo día del MES siguiente.
+    Si ese día no existe en el mes destino (ej. 31-ene -> febrero), usa el
+    último día válido (28/29-feb). Maneja el cambio de año (diciembre -> enero).
+    """
+    mes = d.month + 1
+    anio = d.year
+    if mes > 12:
+        mes = 1
+        anio += 1
+    ultimo_dia = calendar.monthrange(anio, mes)[1]   # cuántos días tiene ese mes
+    return date(anio, mes, min(d.day, ultimo_dia))
 
 
 # Catálogo fijo de tipos de vehículo (coincide con los IDs de la tabla tipo_vehiculo).
@@ -637,6 +653,18 @@ def crear_tarifa(tarifa: TarifaIn):
     }
 
 
+@app.get("/tarifas-mensuales")
+def tarifas_mensuales():
+    """RF4 — Catálogo del valor mensual estipulado por tipo de vehículo."""
+    sql = """
+        SELECT tm.id_tipo, tv.nombre AS tipo, tm.valor_mes
+        FROM tarifa_mensual tm
+        JOIN tipo_vehiculo tv ON tv.id_tipo = tm.id_tipo
+        ORDER BY tm.id_tipo
+    """
+    return con_total(run_query(sql))
+
+
 @app.get("/tarifas/historico")
 def tarifas_historico(id_tipo: TipoVehiculo):
     """RF3 — Histórico de tarifas de un tipo (activas e inactivas)."""
@@ -689,12 +717,14 @@ class VehiculoMensualIn(BaseModel):
 
 
 class MensualidadIn(BaseModel):
-    """Alta de una mensualidad: cliente + cupo + período + vehículos."""
+    """
+    Alta de una mensualidad: cliente + cupo + fecha de inicio + vehículos.
+    La fecha de fin y el monto NO se reciben: los calcula el backend
+    (fin = inicio + 1 mes; monto = suma del valor mensual de cada vehículo).
+    """
     cliente: ClienteIn
     id_espacio: int
     fecha_inicio: date
-    fecha_fin: date
-    monto_pagado: float
     vehiculos: list[VehiculoMensualIn]
 
 
@@ -703,13 +733,12 @@ def crear_mensualidad(m: MensualidadIn):
     """
     RF4 — Da de alta una mensualidad con su cupo (espacio reservado) y vehículos.
     Los vehículos se crean al vuelo si no existen (con validación de formato de placa).
+    La duración es de 1 mes y el monto se calcula desde el catálogo tarifa_mensual.
     """
-    if m.fecha_fin < m.fecha_inicio:
-        raise HTTPException(status_code=422, detail="La fecha de fin no puede ser anterior a la de inicio.")
     if not m.vehiculos:
         raise HTTPException(status_code=422, detail="La mensualidad debe cubrir al menos un vehículo.")
-    if m.monto_pagado < 0:
-        raise HTTPException(status_code=422, detail="El monto pagado no puede ser negativo.")
+
+    fecha_fin = sumar_un_mes(m.fecha_inicio)   # duración fija de 1 mes
 
     with transaccion() as cur:
         # 1) Cliente: lo reutilizamos por documento, o lo creamos si no existe.
@@ -740,7 +769,7 @@ def crear_mensualidad(m: MensualidadIn):
             WHERE id_espacio = %s AND estado = 'ACTIVA'
               AND fecha_inicio <= %s AND fecha_fin >= %s
             """,
-            (m.id_espacio, m.fecha_fin, m.fecha_inicio),
+            (m.id_espacio, fecha_fin, m.fecha_inicio),
         )
         if cur.fetchone():
             raise HTTPException(
@@ -766,13 +795,28 @@ def crear_mensualidad(m: MensualidadIn):
                 validar_formato_placa(veh.placa, tipo["nombre"])
                 cur.execute("INSERT INTO vehiculos (placa, id_tipo) VALUES (%s, %s)", (veh.placa, veh.id_tipo))
 
-        # 4) Insertar la mensualidad y asociar los vehículos
+        # 3b) Calcular el MONTO desde el catálogo: suma del valor mensual de
+        #     cada vehículo cubierto, según su tipo.
+        monto = 0
+        for veh in m.vehiculos:
+            cur.execute("SELECT valor_mes FROM tarifa_mensual WHERE id_tipo = %s", (veh.id_tipo,))
+            fila_tarifa = cur.fetchone()
+            if not fila_tarifa:
+                cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (veh.id_tipo,))
+                nombre = cur.fetchone()
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"No hay tarifa mensual configurada para el tipo '{nombre['nombre'] if nombre else veh.id_tipo}'.",
+                )
+            monto += float(fila_tarifa["valor_mes"])
+
+        # 4) Insertar la mensualidad (fecha_fin y monto CALCULADOS) y asociar los vehículos
         cur.execute(
             """
             INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado)
             VALUES (%s, %s, %s, %s, %s, 'ACTIVA')
             """,
-            (id_cliente, m.id_espacio, m.fecha_inicio, m.fecha_fin, m.monto_pagado),
+            (id_cliente, m.id_espacio, m.fecha_inicio, fecha_fin, monto),
         )
         id_mensualidad = cur.lastrowid
         for veh in m.vehiculos:
@@ -790,6 +834,8 @@ def crear_mensualidad(m: MensualidadIn):
         "id_cliente": id_cliente,
         "cliente_nuevo": cliente_nuevo,
         "numero_espacio": espacio["numero"],
+        "fecha_fin": str(fecha_fin),
+        "monto": monto,
         "vehiculos": [v.placa for v in m.vehiculos],
     }
 

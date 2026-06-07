@@ -153,14 +153,20 @@ export interface VehiculoMensualIn {
   id_tipo: number;
 }
 
-/** Datos para crear una mensualidad (POST /mensualidades). */
+/** Datos para crear una mensualidad (POST /mensualidades).
+ *  fecha_fin y monto los calcula el backend, por eso no se envían. */
 export interface MensualidadIn {
   cliente: ClienteIn;
   id_espacio: number;
   fecha_inicio: string;
-  fecha_fin: string;
-  monto_pagado: number;
   vehiculos: VehiculoMensualIn[];
+}
+
+/** Valor mensual estipulado por tipo (GET /tarifas-mensuales). */
+export interface TarifaMensual {
+  id_tipo: number;
+  tipo: string;
+  valor_mes: number;
 }
 
 /** Una mensualidad activa de una placa (GET /vehiculos/{placa}/mensualidad). */
@@ -257,6 +263,11 @@ export class Api {
   /** RF4 — Lista de mensualidades (con cliente, cupo, placas y estado). */
   getMensualidades(): Observable<Lista<Mensualidad>> {
     return this.http.get<Lista<Mensualidad>>(`${this.baseUrl}/mensualidades`);
+  }
+
+  /** RF4 — Catálogo de valor mensual por tipo (para calcular el monto en pantalla). */
+  getTarifasMensuales(): Observable<Lista<TarifaMensual>> {
+    return this.http.get<Lista<TarifaMensual>>(`${this.baseUrl}/tarifas-mensuales`);
   }
 
   /** RF4 — Crea una mensualidad (cliente + cupo + vehículos) en una transacción. */

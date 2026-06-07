@@ -1,7 +1,7 @@
 import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  Api, TipoVehiculoItem, EspacioEstado, Mensualidad, MensualidadIn
+  Api, TipoVehiculoItem, EspacioEstado, Mensualidad, MensualidadIn, TarifaMensual
 } from '../../services/api';
 
 @Component({
@@ -20,6 +20,8 @@ export class MensualidadesComponent {
   // --- Catálogos para el formulario ---
   tipos = signal<TipoVehiculoItem[]>([]);
   espaciosLibres = signal<EspacioEstado[]>([]);
+  // Valor mensual por tipo (id_tipo -> valor_mes), para calcular el monto en pantalla.
+  valorMesPorTipo = signal<Map<number, number>>(new Map());
 
   // --- Formulario de alta ---
   documento = '';
@@ -28,8 +30,6 @@ export class MensualidadesComponent {
   email = '';
   idEspacio: number | null = null;
   fechaInicio = '';
-  fechaFin = '';
-  montoPagado: number | null = null;
   // Lista dinámica de vehículos (empieza con una fila vacía)
   vehiculos = signal<{ placa: string; id_tipo: number | null }[]>([{ placa: '', id_tipo: null }]);
 
@@ -47,6 +47,35 @@ export class MensualidadesComponent {
       next: (resp) => this.tipos.set(resp.datos),
       error: (err) => console.error(err)
     });
+    // Catálogo de valor mensual por tipo -> lo guardamos como Map para sumar rápido.
+    this.api.getTarifasMensuales().subscribe({
+      next: (resp) => {
+        const mapa = new Map<number, number>();
+        for (const t of resp.datos) mapa.set(t.id_tipo, Number(t.valor_mes));
+        this.valorMesPorTipo.set(mapa);
+      },
+      error: (err) => console.error(err)
+    });
+  }
+
+  /** Monto estimado = suma del valor mensual de los vehículos con tipo elegido. */
+  montoEstimado(): number {
+    const mapa = this.valorMesPorTipo();
+    return this.vehiculos().reduce(
+      (suma, v) => suma + (v.id_tipo !== null ? (mapa.get(v.id_tipo) ?? 0) : 0),
+      0
+    );
+  }
+
+  /** Fecha fin estimada = fecha inicio + 1 mes (se calcula también en el backend). */
+  fechaFinEstimada(): string {
+    if (!this.fechaInicio) return '—';
+    const d = new Date(this.fechaInicio + 'T00:00:00');
+    const dia = d.getDate();
+    d.setMonth(d.getMonth() + 1);
+    // Si el mes destino no tiene ese día, JS se pasa de mes: lo corregimos.
+    if (d.getDate() !== dia) d.setDate(0);
+    return d.toISOString().slice(0, 10);
   }
 
   cargar(): void {
@@ -79,8 +108,7 @@ export class MensualidadesComponent {
       this.error.set('Documento y nombre del cliente son obligatorios.'); return;
     }
     if (this.idEspacio === null)  { this.error.set('Elige un cupo (espacio).'); return; }
-    if (!this.fechaInicio || !this.fechaFin) { this.error.set('Indica las fechas de inicio y fin.'); return; }
-    if (this.montoPagado === null || this.montoPagado < 0) { this.error.set('Indica el monto pagado.'); return; }
+    if (!this.fechaInicio) { this.error.set('Indica la fecha de inicio.'); return; }
 
     // Validamos y normalizamos los vehículos (placa no vacía + tipo elegido).
     const vehs = this.vehiculos().map((v) => ({ placa: v.placa.trim().toUpperCase(), id_tipo: v.id_tipo }));
@@ -97,15 +125,13 @@ export class MensualidadesComponent {
       },
       id_espacio: this.idEspacio,
       fecha_inicio: this.fechaInicio,
-      fecha_fin: this.fechaFin,
-      monto_pagado: this.montoPagado,
       vehiculos: vehs as { placa: string; id_tipo: number }[],
     };
 
     this.enviando.set(true);
     this.api.postMensualidad(m).subscribe({
       next: (resp) => {
-        this.exito.set(`Mensualidad creada (cupo N° ${resp.numero_espacio}) con placas: ${resp.vehiculos.join(', ')}.`);
+        this.exito.set(`Mensualidad creada (cupo N° ${resp.numero_espacio}, vence ${resp.fecha_fin}, monto $${resp.monto}) con placas: ${resp.vehiculos.join(', ')}.`);
         this.enviando.set(false);
         this.limpiar();
         this.cargar();
@@ -116,7 +142,7 @@ export class MensualidadesComponent {
 
   private limpiar(): void {
     this.documento = ''; this.nombre = ''; this.telefono = ''; this.email = '';
-    this.idEspacio = null; this.fechaInicio = ''; this.fechaFin = ''; this.montoPagado = null;
+    this.idEspacio = null; this.fechaInicio = '';
     this.vehiculos.set([{ placa: '', id_tipo: null }]);
   }
 

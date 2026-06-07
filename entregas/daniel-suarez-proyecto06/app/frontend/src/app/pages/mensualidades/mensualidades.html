@@ -74,10 +74,11 @@
     </select>
     <label for="ini">Fecha inicio</label>
     <input id="ini" type="date" [(ngModel)]="fechaInicio" name="ini" />
-    <label for="fin">Fecha fin</label>
-    <input id="fin" type="date" [(ngModel)]="fechaFin" name="fin" />
-    <label for="monto">Monto pagado ($)</label>
-    <input id="monto" type="number" min="0" step="1000" [(ngModel)]="montoPagado" name="monto" />
+
+    <!-- Calculados automáticamente (solo lectura) -->
+    <p class="calculado">Vence: <strong>{{ fechaFinEstimada() }}</strong> <span class="hint">(1 mes)</span></p>
+    <p class="calculado">Monto a pagar: <strong>${{ montoEstimado() }}</strong>
+       <span class="hint">(según tipo de cada vehículo)</span></p>
   </fieldset>
 
   <fieldset>
