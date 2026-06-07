@@ -6,15 +6,25 @@
 
 h3 { margin-top: 1.8rem; }
 
-.formulario { max-width: 460px; }
+/* Cuadrícula: los fieldsets se acomodan en columnas cuando hay ancho. */
+.formulario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
 .formulario fieldset {
   border: 1px solid #ddd;
   border-radius: 6px;
-  margin-bottom: 1rem;
+  margin: 0;
   padding: 0.5rem 1rem 1rem;
 }
 .formulario legend { font-weight: 600; color: #2c3e50; padding: 0 0.4rem; }
-.formulario .acciones { margin-top: 0.5rem; }
+/* Inputs/selects sueltos (Cliente y Contrato) ocupan todo el ancho de su columna. */
+.formulario fieldset > input,
+.formulario fieldset > select { width: 100%; box-sizing: border-box; }
+/* El botón de enviar ocupa toda la fila. */
+.formulario .acciones { grid-column: 1 / -1; margin-top: 0.5rem; }
 
 .calculado {
   margin: 0.5rem 0 0;
