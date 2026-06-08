@@ -284,6 +284,11 @@ export class Api {
     return this.http.get<Lista<TarifaMensual>>(`${this.baseUrl}/tarifas-mensuales`);
   }
 
+  /** RF4 — Cambia el valor mensual de un tipo (UPSERT, sin histórico). */
+  putTarifaMensual(idTipo: number, valorMes: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/tarifas-mensuales`, { id_tipo: idTipo, valor_mes: valorMes });
+  }
+
   /** RF4 — Crea una mensualidad (cliente + cupo + vehículos) en una transacción. */
   postMensualidad(m: MensualidadIn): Observable<any> {
     return this.http.post(`${this.baseUrl}/mensualidades`, m);

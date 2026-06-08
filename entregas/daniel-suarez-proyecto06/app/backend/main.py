@@ -700,6 +700,40 @@ def tarifas_mensuales():
     return con_total(run_query(sql))
 
 
+class TarifaMensualIn(BaseModel):
+    """Nuevo valor mensual para un tipo de vehículo."""
+    id_tipo: TipoVehiculo
+    valor_mes: float
+
+
+@app.put("/tarifas-mensuales")
+def actualizar_tarifa_mensual(t: TarifaMensualIn):
+    """
+    RF4 — Cambia el valor mensual de un tipo de vehículo.
+    A diferencia de las tarifas por hora (que versionan para preservar cobros),
+    este es un catálogo simple sin histórico: se SOBRESCRIBE el valor (UPSERT).
+    El histórico se preserva porque cada mensualidad ya guarda su monto_pagado.
+    """
+    if t.valor_mes < 0:
+        raise HTTPException(status_code=422, detail="El valor mensual no puede ser negativo.")
+    with transaccion() as cur:
+        cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (t.id_tipo,))
+        tipo = cur.fetchone()
+        if not tipo:
+            raise HTTPException(status_code=404, detail=f"No existe un tipo de vehículo con id {t.id_tipo}.")
+        cur.execute(
+            "INSERT INTO tarifa_mensual (id_tipo, valor_mes) VALUES (%s, %s) "
+            "ON DUPLICATE KEY UPDATE valor_mes = VALUES(valor_mes)",
+            (t.id_tipo, t.valor_mes),
+        )
+    return {
+        "mensaje": "Tarifa mensual actualizada",
+        "id_tipo": int(t.id_tipo),
+        "tipo": tipo["nombre"],
+        "valor_mes": t.valor_mes,
+    }
+
+
 @app.get("/tarifas/historico")
 def tarifas_historico(id_tipo: TipoVehiculo):
     """RF3 — Histórico de tarifas de un tipo (activas e inactivas)."""

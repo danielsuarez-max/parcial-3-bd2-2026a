@@ -1,11 +1,25 @@
 h3 { margin-top: 1.8rem; }
+h4 { margin: 0 0 0.4rem; color: #555; }
 
-.nota { color: #666; font-size: 0.9rem; margin: 0.2rem 0 0.6rem; }
+/* Tablas vigentes lado a lado (por hora | mensuales) */
+.tablas {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.tabla-col { flex: 1 1 280px; }
+
+/* Formularios lado a lado (por hora | mensual) */
+.formularios {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.form-col { flex: 1 1 280px; }
 
 .formulario {
   display: flex;
   flex-direction: column;
-  max-width: 320px;
 }
 .formulario .acciones { margin-top: 1.2rem; }
 

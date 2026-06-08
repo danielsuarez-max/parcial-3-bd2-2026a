@@ -1,58 +1,111 @@
 <h2>Tarifas por tipo de vehículo (RF3)</h2>
 
-<!-- ===== Tarifas vigentes ===== -->
+<!-- ===== Tarifas vigentes (por hora y mensuales) ===== -->
 <h3>Vigentes</h3>
 @if (cargando()) {
   <p class="aviso">Cargando…</p>
-} @else if (tarifas().length === 0) {
-  <p class="aviso">No hay tarifas configuradas.</p>
 } @else {
-  <table>
-    <thead>
-      <tr><th>Tipo</th><th>Valor/hora</th><th>Vigente desde</th></tr>
-    </thead>
-    <tbody>
-      @for (t of tarifas(); track t.id_tarifa) {
-        <tr>
-          <td>{{ t.tipo }}</td>
-          <td>${{ t.valor_hora }}</td>
-          <td>{{ t.vigente_desde }}</td>
-        </tr>
+  <div class="tablas">
+    <div class="tabla-col">
+      <h4>Por hora</h4>
+      @if (tarifas().length === 0) {
+        <p class="aviso">No hay tarifas configuradas.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr><th>Tipo</th><th>Valor/hora</th><th>Vigente desde</th></tr>
+          </thead>
+          <tbody>
+            @for (t of tarifas(); track t.id_tarifa) {
+              <tr>
+                <td>{{ t.tipo }}</td>
+                <td>${{ t.valor_hora }}</td>
+                <td>{{ t.vigente_desde }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
       }
-    </tbody>
-  </table>
+    </div>
+
+    <div class="tabla-col">
+      <h4>Mensuales</h4>
+      @if (tarifasMensuales().length === 0) {
+        <p class="aviso">No hay tarifas mensuales configuradas.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr><th>Tipo</th><th>Valor/mes</th></tr>
+          </thead>
+          <tbody>
+            @for (t of tarifasMensuales(); track t.id_tipo) {
+              <tr>
+                <td>{{ t.tipo }}</td>
+                <td>${{ t.valor_mes }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
 }
 
-<!-- ===== Nueva tarifa ===== -->
-<h3>Configurar nueva tarifa</h3>
-<p class="nota">La tarifa anterior de ese tipo se jubila automáticamente (queda en el histórico).</p>
+<!-- ===== Formularios: nueva tarifa por hora (izq) + cambiar mensual (der) ===== -->
+<div class="formularios">
+  <div class="form-col">
+    <h3>Configurar nueva tarifa</h3>
+    <form class="formulario" (ngSubmit)="crearTarifa()">
+      <label for="tipo">Tipo de vehículo</label>
+      <select id="tipo" [(ngModel)]="idTipo" name="tipo">
+        <option [ngValue]="null" disabled>— Elige un tipo —</option>
+        @for (t of tipos(); track t.id_tipo) {
+          <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+        }
+      </select>
 
-<form class="formulario" (ngSubmit)="crearTarifa()">
-  <label for="tipo">Tipo de vehículo</label>
-  <select id="tipo" [(ngModel)]="idTipo" name="tipo">
-    <option [ngValue]="null" disabled>— Elige un tipo —</option>
-    @for (t of tipos(); track t.id_tipo) {
-      <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
-    }
-  </select>
+      <label for="valor">Valor por hora ($)</label>
+      <input id="valor" type="number" min="0" step="100" [(ngModel)]="valorHora" name="valor" />
 
-  <label for="valor">Valor por hora ($)</label>
-  <input id="valor" type="number" min="0" step="100" [(ngModel)]="valorHora" name="valor" />
+      <label for="desde">Vigente desde</label>
+      <input id="desde" type="date" [(ngModel)]="vigenteDesde" name="desde" />
 
-  <label for="desde">Vigente desde (opcional)</label>
-  <input id="desde" type="date" [(ngModel)]="vigenteDesde" name="desde" />
-
-  <div class="acciones">
-    <button class="btn" type="submit" [disabled]="enviando()">
-      {{ enviando() ? 'Guardando…' : 'Guardar tarifa' }}
-    </button>
+      <div class="acciones">
+        <button class="btn" type="submit" [disabled]="enviando()">
+          {{ enviando() ? 'Guardando…' : 'Guardar tarifa' }}
+        </button>
+      </div>
+    </form>
+    @if (exito()) { <p class="exito">✅ {{ exito() }}</p> }
+    @if (error()) { <p class="error">⚠️ {{ error() }}</p> }
   </div>
-</form>
 
-@if (exito()) { <p class="exito">✅ {{ exito() }}</p> }
-@if (error()) { <p class="error">⚠️ {{ error() }}</p> }
+  <div class="form-col">
+    <h3>Cambiar tarifa mensual</h3>
+    <form class="formulario" (ngSubmit)="guardarTarifaMensual()">
+      <label for="tipo-mes">Tipo de vehículo</label>
+      <select id="tipo-mes" [(ngModel)]="idTipoMes" name="tipo-mes" (ngModelChange)="onTipoMesChange()">
+        <option [ngValue]="null" disabled>— Elige un tipo —</option>
+        @for (t of tipos(); track t.id_tipo) {
+          <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+        }
+      </select>
 
-<!-- ===== Histórico ===== -->
+      <label for="valor-mes">Valor por mes ($)</label>
+      <input id="valor-mes" type="number" min="0" step="1000" [(ngModel)]="valorMes" name="valor-mes" />
+
+      <div class="acciones">
+        <button class="btn" type="submit" [disabled]="enviandoMes()">
+          {{ enviandoMes() ? 'Guardando…' : 'Guardar tarifa mensual' }}
+        </button>
+      </div>
+    </form>
+    @if (exitoMes()) { <p class="exito">✅ {{ exitoMes() }}</p> }
+    @if (errorMes()) { <p class="error">⚠️ {{ errorMes() }}</p> }
+  </div>
+</div>
+
+<!-- ===== Histórico (solo tarifas por hora) ===== -->
 <h3>Histórico de un tipo</h3>
 <div class="fila">
   <select [(ngModel)]="idTipoHistorico" (ngModelChange)="verHistorico()">
