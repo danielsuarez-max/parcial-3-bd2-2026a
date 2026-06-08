@@ -44,12 +44,23 @@
         } @else if (opcionesEspacio(v, vehiculos()).length === 0) {
           <span class="hint-cupo">Sin cupos libres para ese tipo</span>
         } @else {
-          <select [(ngModel)]="v.id_espacio" name="esp{{ $index }}">
-            <option [ngValue]="null" disabled>— Cupo —</option>
-            @for (e of opcionesEspacio(v, vehiculos()); track e.id_espacio) {
-              <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+          <div class="combo" [class.abierto]="comboAbierto() === ('a' + $index)">
+            <button type="button" class="combo-trigger" [class.placeholder]="v.id_espacio === null"
+                    (click)="toggleCombo('a' + $index, $event)">
+              <span>{{ nombreCupo(v) }}</span><span class="flecha">▾</span>
+            </button>
+            @if (comboAbierto() === ('a' + $index)) {
+              <ul class="combo-lista" (click)="$event.stopPropagation()">
+                @for (e of opcionesEspacio(v, vehiculos()); track e.id_espacio) {
+                  <li class="combo-item" [class.seleccionado]="e.id_espacio === v.id_espacio"
+                      (click)="elegirCupo(v, e.id_espacio)">
+                    <span>N° {{ e.numero }}</span>
+                    @if (e.id_espacio === v.id_espacio) { <span class="check">✓</span> }
+                  </li>
+                }
+              </ul>
             }
-          </select>
+          </div>
         }
         @if (vehiculos().length > 1) {
           <button type="button" class="btn-quitar" (click)="quitarVehiculo($index)">✕</button>
@@ -162,12 +173,23 @@
           } @else if (opcionesEspacio(v, renovVehiculos()).length === 0) {
             <span class="hint-cupo">Sin cupos libres</span>
           } @else {
-            <select [(ngModel)]="v.id_espacio" name="resp{{ $index }}">
-              <option [ngValue]="null" disabled>— Cupo —</option>
-              @for (e of opcionesEspacio(v, renovVehiculos()); track e.id_espacio) {
-                <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+            <div class="combo" [class.abierto]="comboAbierto() === ('r' + $index)">
+              <button type="button" class="combo-trigger" [class.placeholder]="v.id_espacio === null"
+                      (click)="toggleCombo('r' + $index, $event)">
+                <span>{{ nombreCupo(v) }}</span><span class="flecha">▾</span>
+              </button>
+              @if (comboAbierto() === ('r' + $index)) {
+                <ul class="combo-lista" (click)="$event.stopPropagation()">
+                  @for (e of opcionesEspacio(v, renovVehiculos()); track e.id_espacio) {
+                    <li class="combo-item" [class.seleccionado]="e.id_espacio === v.id_espacio"
+                        (click)="elegirCupo(v, e.id_espacio)">
+                      <span>N° {{ e.numero }}</span>
+                      @if (e.id_espacio === v.id_espacio) { <span class="check">✓</span> }
+                    </li>
+                  }
+                </ul>
               }
-            </select>
+            </div>
           }
           @if (renovVehiculos().length > 1) {
             <button type="button" class="btn-quitar" (click)="quitarVehRenov($index)">✕</button>

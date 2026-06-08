@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, EspacioLibre, Mensualidad, MensualidadIn, VehiculoMensualIn
@@ -107,6 +107,28 @@ export class MensualidadesComponent {
     );
     return libres.filter((e) => !usadosPorOtros.has(e.id_espacio));
   }
+
+  // ===== Dropdown propio del cupo (el <select> nativo se desbordaba) =====
+  comboAbierto = signal<string | null>(null);   // clave de la fila cuyo combo está abierto
+
+  toggleCombo(clave: string, ev: MouseEvent): void {
+    ev.stopPropagation();   // que este clic no llegue al document y lo cierre
+    this.comboAbierto.update((actual) => (actual === clave ? null : clave));
+  }
+  elegirCupo(fila: FilaVehiculo, idEspacio: number): void {
+    fila.id_espacio = idEspacio;
+    this.comboAbierto.set(null);
+  }
+  /** Texto del botón del combo: el cupo elegido o el placeholder. */
+  nombreCupo(fila: FilaVehiculo): string {
+    if (fila.id_espacio === null || fila.id_tipo === null) return '— Cupo —';
+    const e = (this.librePorTipo().get(fila.id_tipo) ?? []).find((x) => x.id_espacio === fila.id_espacio);
+    return e ? `N° ${e.numero}` : '— Cupo —';
+  }
+  @HostListener('document:click')
+  cerrarCombos(): void { this.comboAbierto.set(null); }
+  @HostListener('document:keydown.escape')
+  escCombos(): void { this.comboAbierto.set(null); }
 
   /** Suma del valor mensual de las filas con tipo elegido. */
   private montoDe(lista: FilaVehiculo[]): number {
