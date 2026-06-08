@@ -1,6 +1,11 @@
 /* Estilos propios de esta vista (los compartidos están en styles.css global). */
 .btn { margin-bottom: 0.5rem; }
 
+/* Comprobante de salida: tabla compacta (la regla global es width:100%). */
+.comprobante { margin: 0.75rem 0 1.25rem; }
+.comprobante h3 { margin: 0 0 0.4rem; color: #0a7d28; font-size: 1rem; }
+.comprobante table { width: auto; }
+
 .btn-salida {
   background: #0a7d28;
   color: #fff;

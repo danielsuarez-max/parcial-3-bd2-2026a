@@ -4,15 +4,35 @@
 
 <!-- Comprobante de la última salida registrada -->
 @if (ultimaSalida(); as s) {
-  <p class="exito">
-    ✅ Salida de <strong>{{ s.placa }}</strong> ({{ s.modalidad }}) ·
-    {{ s.minutos_dentro }} min
-    @if (s.modalidad === 'OCASIONAL') {
-      · {{ s.horas_cobradas }} h cobrada(s) · <strong>Cobro: ${{ s.monto_cobrado | number:'1.0-0' }}</strong>
-    } @else {
-      · {{ s.nota }}
-    }
-  </p>
+  <div class="comprobante">
+    <h3>✅ Salida registrada</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Placa</th>
+          <th>Tipo</th>
+          <th>Modalidad</th>
+          <th>Min. dentro</th>
+          <th>Horas cobradas</th>
+          <th>Cobro</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ s.placa }}</td>
+          <td>{{ s.tipo_vehiculo }}</td>
+          <td>{{ s.modalidad }}</td>
+          <td>{{ s.minutos_dentro }}</td>
+          <td>{{ s.modalidad === 'OCASIONAL' ? s.horas_cobradas : '—' }}</td>
+          <td>
+            {{ s.modalidad === 'OCASIONAL'
+                 ? ('$' + (s.monto_cobrado | number:'1.0-0'))
+                 : 'Incluido en mensualidad' }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 }
 
 @if (cargando()) {
