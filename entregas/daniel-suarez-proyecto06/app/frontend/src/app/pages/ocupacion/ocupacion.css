@@ -32,6 +32,16 @@
 /* ===== Mapa del parqueadero ===== */
 h3 { margin-top: 1.8rem; }
 
+/* Fila del buscador por tipo (RF5) */
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 1rem;
+}
+.fila label { display: inline; margin: 0; font-weight: 500; }
+
 .leyenda {
   display: flex;
   align-items: center;
@@ -71,3 +81,14 @@ h3 { margin-top: 1.8rem; }
 .celda.libre,     .punto.libre     { background: #0a7d28; }
 .celda.ocupado,   .punto.ocupado   { background: #b00020; }
 .celda.reservado, .punto.reservado { background: #b07d0a; }
+
+/* Resaltado del buscador (RF5): libres compatibles en azul, el resto atenuado.
+   .compatible va después para ganar al color de estado; el scale lo hace sobresalir. */
+.celda.compatible, .punto.compatible { background: #1565c0; }
+.celda.compatible {
+  outline: 2px solid #0d47a1;
+  transform: scale(1.08);
+  position: relative;
+  z-index: 1;
+}
+.celda.atenuado { opacity: 0.25; }

@@ -36,10 +36,37 @@
 
   <!-- Mapa del parqueadero: un cuadro por espacio, coloreado según su estado -->
   <h3>Mapa del parqueadero</h3>
+
+  <!-- Buscador por tipo (RF5): resalta los libres compatibles sobre el mapa -->
+  <div class="fila">
+    <label for="tipo">Buscar espacio para:</label>
+    <select id="tipo" [(ngModel)]="idTipoSeleccionado">
+      <option [ngValue]="null" disabled>— Elige un tipo —</option>
+      @for (op of opciones(); track op.id_tipo) {
+        <option [ngValue]="op.id_tipo">{{ op.label }}</option>
+      }
+    </select>
+    <button class="btn" (click)="buscar()">Buscar</button>
+    @if (filtroActivo()) {
+      <button class="btn btn-sec" (click)="limpiarFiltro()">Quitar filtro</button>
+    }
+  </div>
+
+  @if (filtroActivo()) {
+    @if (libresCompatibles().size === 0) {
+      <p class="aviso">No hay espacios libres para ese tipo de vehículo.</p>
+    } @else {
+      <p class="total">Libres compatibles: <strong>{{ libresCompatibles().size }}</strong></p>
+    }
+  }
+
   <div class="leyenda">
     <span class="punto libre"></span> Libre
     <span class="punto ocupado"></span> Ocupado
     <span class="punto reservado"></span> Reservado
+    @if (filtroActivo()) {
+      <span class="punto compatible"></span> Libre compatible
+    }
   </div>
   <div class="mapa">
     @for (e of espacios(); track e.id_espacio) {
@@ -47,6 +74,8 @@
            [class.libre]="e.estado === 'LIBRE'"
            [class.ocupado]="e.estado === 'OCUPADO'"
            [class.reservado]="e.estado === 'RESERVADO'"
+           [class.compatible]="filtroActivo() && esCompatible(e)"
+           [class.atenuado]="filtroActivo() && !esCompatible(e)"
            [title]="tooltip(e)">
         {{ e.numero }}
       </div>

@@ -1,9 +1,10 @@
 import { Component, signal, inject } from '@angular/core';
-import { Api, Ocupacion, EspacioEstado } from '../../services/api';
+import { FormsModule } from '@angular/forms';   // habilita [(ngModel)] en la plantilla
+import { Api, Ocupacion, EspacioEstado, TipoVehiculoItem } from '../../services/api';
 
 @Component({
   selector: 'app-ocupacion',
-  imports: [],
+  imports: [FormsModule],
   templateUrl: './ocupacion.html',
   styleUrl: './ocupacion.css'
 })
@@ -15,13 +16,27 @@ export class OcupacionComponent {
   cargando = signal(true);
   error = signal<string | null>(null);
 
+  // ===== Buscador por tipo (RF5, fusionado desde "Espacios libres") =====
+  opciones = signal<{ label: string; id_tipo: number }[]>([]);  // tipos agrupados
+  idTipoSeleccionado: number | null = null;                     // enlazado con [(ngModel)]
+  // id_espacio de los libres compatibles con el tipo elegido. Set => chequeo O(1) por celda.
+  libresCompatibles = signal<Set<number>>(new Set());
+  filtroActivo = signal(false);   // ¿hay un tipo aplicado? controla resaltar/atenuar
+
   constructor() {
     this.cargar();
+
+    // Pedimos los tipos y los transformamos en opciones agrupadas para el dropdown.
+    this.api.getTipos().subscribe({
+      next: (resp) => this.opciones.set(this.agrupar(resp.datos)),
+      error: (err) => console.error(err)
+    });
   }
 
   cargar(): void {
     this.cargando.set(true);
     this.error.set(null);
+    this.limpiarFiltro();   // al refrescar, el mapa vuelve a su estado normal
 
     // Pedimos los totales (KPI)...
     this.api.getOcupacion().subscribe({
@@ -41,6 +56,58 @@ export class OcupacionComponent {
       next: (resp) => this.espacios.set(resp.datos),
       error: (err) => console.error(err)
     });
+  }
+
+  /**
+   * Carro, Camioneta y Camión comparten los espacios grandes (1-70), así que
+   * consultarlos por separado es redundante: los unimos en una sola opción.
+   * Mandamos el id_tipo de cualquiera de ellos (devuelven los mismos espacios).
+   */
+  private agrupar(tipos: TipoVehiculoItem[]): { label: string; id_tipo: number }[] {
+    const grandes = ['Carro', 'Camioneta', 'Camión'];
+    const opciones: { label: string; id_tipo: number }[] = [];
+
+    const losGrandes = tipos.filter((t) => grandes.includes(t.nombre));
+    if (losGrandes.length > 0) {
+      opciones.push({ label: 'Vehículos grandes', id_tipo: losGrandes[0].id_tipo });
+    }
+    for (const t of tipos) {
+      if (!grandes.includes(t.nombre)) {
+        opciones.push({ label: t.nombre, id_tipo: t.id_tipo });
+      }
+    }
+    return opciones;
+  }
+
+  /** RF5 — busca los espacios libres compatibles y los marca en el mapa. */
+  buscar(): void {
+    if (this.idTipoSeleccionado === null) {
+      this.error.set('Elige un tipo de vehículo primero.');
+      return;
+    }
+    this.error.set(null);
+    this.api.getEspaciosLibres(this.idTipoSeleccionado).subscribe({
+      next: (resp) => {
+        this.libresCompatibles.set(new Set(resp.datos.map((e) => e.id_espacio)));
+        this.filtroActivo.set(true);
+      },
+      error: (err) => {
+        console.error(err);
+        this.error.set('No se pudieron cargar los espacios libres.');
+      }
+    });
+  }
+
+  /** Quita el resaltado y vuelve el mapa a su estado normal. */
+  limpiarFiltro(): void {
+    this.idTipoSeleccionado = null;
+    this.libresCompatibles.set(new Set());
+    this.filtroActivo.set(false);
+  }
+
+  /** ¿Este espacio es uno de los libres compatibles encontrados? */
+  esCompatible(e: EspacioEstado): boolean {
+    return this.libresCompatibles().has(e.id_espacio);
   }
 
   /** Texto que se muestra al pasar el mouse sobre un cuadro. */
