@@ -1,4 +1,4 @@
-<h2>Mensualidades (RF4)</h2>
+<h2>Mensualidades</h2>
 
 <!-- ===== Nueva mensualidad (arriba) ===== -->
 <h3>Nueva mensualidad</h3>
@@ -11,9 +11,9 @@
       <input id="doc" type="text" [(ngModel)]="documento" name="doc" autocomplete="off" />
       <label for="nom">Nombre completo</label>
       <input id="nom" type="text" [(ngModel)]="nombre" name="nom" autocomplete="off" />
-      <label for="tel">Teléfono (opcional)</label>
+      <label for="tel">Teléfono</label>
       <input id="tel" type="text" [(ngModel)]="telefono" name="tel" autocomplete="off" />
-      <label for="mail">Email (opcional)</label>
+      <label for="mail">Email</label>
       <input id="mail" type="email" [(ngModel)]="email" name="mail" autocomplete="off" />
     </fieldset>
 
@@ -40,7 +40,6 @@
           }
         </select>
         @if (v.id_tipo === null) {
-          <span class="hint-cupo">Elige el tipo</span>
         } @else if (opcionesEspacio(v, vehiculos()).length === 0) {
           <span class="hint-cupo">Sin cupos libres para ese tipo</span>
         } @else {
@@ -173,7 +172,6 @@
             }
           </select>
           @if (v.id_tipo === null) {
-            <span class="hint-cupo">Elige el tipo</span>
           } @else if (opcionesEspacio(v, renovVehiculos()).length === 0) {
             <span class="hint-cupo">Sin cupos libres</span>
           } @else {

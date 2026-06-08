@@ -1,4 +1,4 @@
-<h2>Registrar entrada (RF1)</h2>
+<h2>Registrar entrada</h2>
 
 <form class="formulario" (ngSubmit)="registrar()">
   <!-- Placa -->
@@ -27,7 +27,6 @@
   @if (esMensual() !== true) {
     <label for="espacio">Espacio</label>
     @if (idTipo === null) {
-      <p class="aviso">Elige primero el tipo para ver los espacios libres.</p>
     } @else if (espacios().length === 0) {
       <p class="aviso">No hay espacios libres para ese tipo.</p>
     } @else {
@@ -59,10 +58,10 @@
   }
 
   <!-- Opcionales -->
-  <label for="color">Color (opcional)</label>
+  <label for="color">Color</label>
   <input id="color" type="text" [(ngModel)]="color" name="color" autocomplete="off" />
 
-  <label for="marca">Marca (opcional)</label>
+  <label for="marca">Marca</label>
   <input id="marca" type="text" [(ngModel)]="marca" name="marca" autocomplete="off" />
 
   <div class="acciones">
