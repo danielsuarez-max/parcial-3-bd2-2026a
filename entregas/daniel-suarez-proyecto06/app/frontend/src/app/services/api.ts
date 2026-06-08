@@ -193,6 +193,25 @@ export interface MensualidadActiva {
   nombre_completo: string;
 }
 
+/** Una fila del reporte por día (GET /reportes/dia). RF6.
+ *  El recaudo diario es solo de ocasionales (los mensuales no cobran por ingreso). */
+export interface ReporteDia {
+  dia: string;
+  total_ingresos: number;
+  ocasionales: number;
+  mensuales: number;
+  recaudado_ocasionales: number;
+}
+
+/** Una fila del reporte por mes (GET /reportes/mes). RF6. */
+export interface ReporteMes {
+  mes: string;
+  ingresos_ocasionales: number;
+  ingresos_mensuales: number;
+  recaudado_ocasionales: number;
+  recaudado_mensualidades: number;
+}
+
 @Injectable({ providedIn: 'root' })   // servicio único compartido por toda la app
 export class Api {
   // Dirección base del backend (FastAPI corre en el puerto 8001).
@@ -312,5 +331,15 @@ export class Api {
   /** RF4 — Barrido: marca VENCIDA las mensualidades activas ya expiradas. */
   vencerExpiradas(): Observable<any> {
     return this.http.post(`${this.baseUrl}/mensualidades/vencer-expiradas`, {});
+  }
+
+  /** RF6 — Reporte de ingresos cerrados agrupados por día. */
+  getReporteDia(): Observable<Lista<ReporteDia>> {
+    return this.http.get<Lista<ReporteDia>>(`${this.baseUrl}/reportes/dia`);
+  }
+
+  /** RF6 — Reporte mensual por modalidad (ocasional/mensual) y recaudo. */
+  getReporteMes(): Observable<Lista<ReporteMes>> {
+    return this.http.get<Lista<ReporteMes>>(`${this.baseUrl}/reportes/mes`);
   }
 }
