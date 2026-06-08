@@ -15,10 +15,12 @@
 } @else if (error()) {
   <p class="error">{{ error() }}</p>
 } @else {
-  <div class="reportes-cols">
+  <!-- Las dos tablas (Por día · Por mes) una al lado de la otra; si no caben, se apilan
+       (flex-wrap), nunca scroll horizontal. La gráfica vive en un modal aparte. -->
+  <div class="reportes-fila">
 
-  <!-- ===== Por día ===== -->
-  <div class="reporte-col">
+  <!-- 1) Tabla por día -->
+  <div class="bloque">
   <h3>Por día</h3>
   @if (reporteDia().length === 0) {
     <p class="aviso">No hay ingresos cerrados registrados.</p>
@@ -27,7 +29,7 @@
       <thead>
         <tr>
           <th>Día</th>
-          <th>Total ingresos</th>
+          <th>Ingresos</th>
           <th>Ocasionales</th>
           <th>Mensuales</th>
           <th>Recaudo ocasionales</th>
@@ -57,9 +59,13 @@
   }
   </div>
 
-  <!-- ===== Por mes ===== -->
-  <div class="reporte-col">
-  <h3>Por mes</h3>
+  <!-- 2) Tabla por mes (con botón para abrir la gráfica en un modal) -->
+  <div class="bloque">
+  <div class="bloque-header">
+    <h3>Por mes</h3>
+    <button class="btn btn-sec" (click)="abrirGrafico()"
+            [disabled]="reporteMes().length === 0">📊 Gráfico</button>
+  </div>
   @if (reporteMes().length === 0) {
     <p class="aviso">No hay datos mensuales.</p>
   } @else {
@@ -101,5 +107,35 @@
   </div>
 
   </div>
+
+  <!-- Modal con la gráfica mensual (apilada: ocasionales abajo + mensualidades arriba). RF6.
+       Sale de la fila para no forzar scroll horizontal; emerge al pulsar "📊 Gráfico". -->
+  @if (mostrarGrafico()) {
+    <div class="modal-overlay overlay-top" (click)="cerrarGrafico()">
+      <div class="modal-card grafico-modal" (click)="$event.stopPropagation()">
+        <h3>Recaudo mensual</h3>
+        <div class="leyenda-grafica">
+          <span class="punto ocasional"></span> Ocasionales
+          <span class="punto mensual"></span> Mensualidades
+        </div>
+        <div class="grafica">
+          @for (m of reporteMes(); track m.mes) {
+            <div class="barra-col" [title]="m.mes + ': $' + (totalMes(m) | number:'1.0-0')">
+              <div class="pila">
+                <div class="barra mensual"
+                     [style.height.%]="alturaPct(m.recaudado_mensualidades, maxRecaudoMes())"></div>
+                <div class="barra ocasional"
+                     [style.height.%]="alturaPct(m.recaudado_ocasionales, maxRecaudoMes())"></div>
+              </div>
+              <span class="etiqueta-x">{{ m.mes }}</span>
+            </div>
+          }
+        </div>
+        <div class="modal-acciones">
+          <button class="btn" (click)="cerrarGrafico()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  }
 }
 </div>

@@ -3,7 +3,12 @@
   color: #fff;
   padding: 1rem 2rem;
 }
-.cabecera h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
+.cabecera h1 {
+  margin: 0 0 0.6rem;
+  font-size: 2.4rem;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
 
 .menu {
   display: flex;
@@ -16,9 +21,24 @@
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
   font-size: 0.95rem;
+  transition: background 0.15s ease, color 0.15s ease,
+              transform 0.12s ease, box-shadow 0.12s ease;
 }
-.menu a:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-.menu a.activo { background: #fff; color: #2c3e50; font-weight: 600; }
+/* Al pasar el mouse, el ítem se "levanta" como un botón. */
+.menu a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: translateY(-3px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+}
+/* El ítem de la ruta activa queda levantado tras el clic. */
+.menu a.activo {
+  background: #fff;
+  color: #2c3e50;
+  font-weight: 600;
+  transform: translateY(-3px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
 
 .contenedor {
   max-width: 1000px;

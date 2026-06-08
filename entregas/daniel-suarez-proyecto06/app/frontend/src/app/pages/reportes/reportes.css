@@ -1,29 +1,37 @@
 h3 { margin-top: 1.2rem; }
 
-/* Bloque (botón + tablas) tan ancho como necesiten las tablas y centrado en la ventana.
-   width:max-content ignora el max-width:1000px del contenedor; left:50% + translateX(-50%)
-   lo centra respecto a la ventana. Como el botón vive dentro del bloque, queda alineado
-   con el borde izquierdo de la primera tabla. */
+/* El bloque mide exactamente lo que ocupan las tablas (max-content) y se centra
+   respecto a la ventana con left:50% + translateX(-50%) (rompe el max-width del
+   contenedor global). Resultado: el mismo espacio en blanco a ambos lados. */
 .reportes-wrap {
   width: max-content;
   max-width: calc(100vw - 3rem);   /* nunca más ancho que la ventana */
   position: relative;
   left: 50%;
   transform: translateX(-50%);
-  margin-inline: auto;
 }
 .reportes-wrap .btn { margin-bottom: 1rem; }   /* el botón queda encima de las tablas */
 
-/* Las dos tablas (día | mes) lado a lado; en pantallas angostas se apilan. */
-.reportes-cols {
+/* Las 2 tablas (Por día · Por mes) lado a lado; si no caben, se apilan (wrap),
+   nunca hay scroll horizontal. */
+.reportes-fila {
   display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
+  gap: 1.5rem;
   align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;   /* tablas centradas: mismo espacio en blanco a ambos lados */
 }
-.reporte-col {
-  flex: 0 1 auto;           /* cada tabla toma su ancho natural, sin comprimir ni cortar */
+.bloque {
+  flex: 0 0 auto;                  /* cada bloque toma su ancho natural */
 }
+
+/* Encabezado del bloque "Por mes": título + botón "Gráfico" alineados. */
+.bloque-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.bloque-header h3 { margin-top: 1.2rem; }
 
 /* Fila de totales al pie de cada tabla */
 tfoot .totales td {
@@ -31,3 +39,83 @@ tfoot .totales td {
   background: #eef3f8;
   border-top: 2px solid #2c3e50;
 }
+
+/* ===== Gráfica de barras del modal mensual (CSS puro, sin librerías) ===== */
+/* El modal de la gráfica se ancla arriba (centrado horizontal lo da el overlay global)
+   y permite scroll interno si la tarjeta supera el alto de la ventana. */
+.overlay-top {
+  align-items: flex-start;     /* pegado arriba en vez de centrado vertical */
+  overflow-y: auto;            /* scroll dentro del overlay, no de la página */
+  padding: 2rem 1rem;          /* aire arriba/abajo para que no toque el borde */
+}
+
+.grafico-modal { max-width: 560px; }   /* la tarjeta del modal respira con la gráfica */
+
+.grafica {
+  display: flex;
+  align-items: flex-end;       /* las barras crecen desde la base */
+  gap: 1.25rem;                /* aire entre columnas: las etiquetas no se solapan */
+  height: 300px;               /* alto de la escala (el 100% de las barras) */
+  padding: 0.5rem 0.5rem 1.6rem;  /* hueco abajo para la etiqueta del eje X */
+  margin: 0.5rem 0 1.2rem;
+  overflow-x: auto;            /* por si hubiera muchos meses */
+}
+.barra-col {
+  position: relative;
+  height: 100%;                /* cada columna = la escala completa */
+  width: 70px;                 /* ancho cómodo para que quepa la etiqueta (2026-05) */
+  flex: 0 0 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;         /* centra la barra dentro de la columna */
+}
+/* La pila (barra apilada) queda esbelta y centrada dentro de la columna. */
+.pila {
+  height: 100%;
+  width: 46px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.barra {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.35s ease;   /* anima al recargar/cambiar datos */
+}
+.barra.ocasional { background: #1565c0; }
+.barra.mensual   { background: #0a7d28; }
+/* En la pila, la parte de arriba (mensual) redondea; la de abajo va a ras. */
+.pila .barra.ocasional { border-radius: 0; }
+
+/* Etiqueta del eje X debajo de cada barra (fuera del área de escala). */
+.etiqueta-x {
+  position: absolute;
+  bottom: -1.4rem;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* Leyenda de la gráfica apilada */
+.leyenda-grafica {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 0.4rem;
+}
+.leyenda-grafica .punto {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  margin-left: 0.6rem;
+}
+.leyenda-grafica .punto.ocasional { background: #1565c0; }
+.leyenda-grafica .punto.mensual   { background: #0a7d28; }

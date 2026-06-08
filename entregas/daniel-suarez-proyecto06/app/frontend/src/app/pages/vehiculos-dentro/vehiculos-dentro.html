@@ -59,7 +59,8 @@
         <th>Entrada</th>
         <th>Modalidad</th>
         <th>Cliente (mensual)</th>
-        <th>Minutos dentro</th>
+        <th>Tiempo dentro</th>
+        <th>Costo proyectado</th>
         <th>Acción</th>
       </tr>
     </thead>
@@ -72,7 +73,14 @@
           <td>{{ v.fecha_hora_entrada | date:'short' }}</td>
           <td>{{ v.modalidad }}</td>
           <td>{{ v.cliente_mensual ?? '—' }}</td>
-          <td>{{ v.minutos_dentro }}</td>
+          <td class="cronometro">{{ tiempoVivo(v) }}</td>
+          <td>
+            @if (costoProyectado(v) === null) {
+              <span class="incluido">Incluido</span>
+            } @else {
+              <strong>${{ costoProyectado(v) | number:'1.0-0' }}</strong>
+            }
+          </td>
           <td>
             <button class="btn-salida" (click)="pedirSalida(v)"
                     [disabled]="saliendoId() === v.id_ingreso">

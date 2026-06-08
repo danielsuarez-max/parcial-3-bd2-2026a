@@ -1,3 +1,20 @@
+/* ===== Alerta visual de capacidad ===== */
+.alerta-capacidad {
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  animation: alertaEntra 0.25s ease-out;
+}
+.alerta-capacidad.critico { background: #b07d0a; }   /* naranja: casi lleno */
+.alerta-capacidad.lleno   { background: #b00020; }   /* rojo: lleno */
+@keyframes alertaEntra {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+
 .tarjetas {
   display: flex;
   flex-wrap: wrap;

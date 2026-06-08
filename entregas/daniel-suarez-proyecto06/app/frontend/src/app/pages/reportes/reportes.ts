@@ -16,6 +16,9 @@ export class ReportesComponent {
   cargando = signal(true);
   error = signal<string | null>(null);
 
+  // ¿Está abierto el modal con la gráfica mensual?
+  mostrarGrafico = signal(false);
+
   // ===== Totales (señales derivadas: se recalculan solas al cambiar los datos) =====
   totalesDia = computed(() => {
     const filas = this.reporteDia();
@@ -37,6 +40,19 @@ export class ReportesComponent {
       total:                   filas.reduce((s, f) => s + f.recaudado_ocasionales + f.recaudado_mensualidades, 0),
     };
   });
+
+  // ===== Escala de la gráfica mensual (señal derivada) =====
+  // El recaudo total más alto entre los meses. Se usa como "100%" para que la barra
+  // mayor llene el alto disponible y las demás se midan en proporción a ella.
+  // Math.max(1, ...) evita dividir por 0 cuando aún no hay datos.
+  maxRecaudoMes = computed(() =>
+    Math.max(1, ...this.reporteMes().map((m) => this.totalMes(m)))
+  );
+
+  /** Alto en % de una barra respecto al recaudo máximo (para [style.height.%]). */
+  alturaPct(valor: number, maximo: number): number {
+    return (valor / maximo) * 100;
+  }
 
   constructor() {
     this.cargar();
@@ -61,4 +77,8 @@ export class ReportesComponent {
   totalMes(f: ReporteMes): number {
     return f.recaudado_ocasionales + f.recaudado_mensualidades;
   }
+
+  /** Abre/cierra el modal con la gráfica de barras mensual. */
+  abrirGrafico(): void { this.mostrarGrafico.set(true); }
+  cerrarGrafico(): void { this.mostrarGrafico.set(false); }
 }

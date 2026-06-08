@@ -1,11 +1,97 @@
+/* Fondo sutil detrás del contenido para que no sea todo blanco. */
+:host {
+  display: block;
+  background: radial-gradient(900px 360px at 15% -20%, #e9f0f7, transparent 70%);
+}
+
+/* ===== Layout de dos columnas: tarjeta del form + panel de ocupación ===== */
+.registro-layout {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+/* Tarjeta que contiene el formulario */
+.form-card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  width: 400px;
+  max-width: 100%;
+}
+/* Franja de encabezado con color de marca (el "toque visual"). */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #2c3e50, #3b536b);
+  color: #fff;
+  padding: 0.9rem 1.2rem;
+  border-radius: 10px 10px 0 0;
+  font-family: 'Gotham', 'Jost', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.icono-auto { width: 22px; height: 22px; flex-shrink: 0; }
+
 .formulario {
   display: flex;
   flex-direction: column;
-  max-width: 360px;
+  padding: 1.2rem 1.4rem 1.5rem;   /* el form respira dentro de la tarjeta */
 }
 .formulario .acciones {
   margin-top: 1.2rem;
 }
+
+/* ===== Panel lateral: ocupación actual ===== */
+.panel-ocupacion {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  padding: 1.2rem 1.4rem;
+  width: 280px;
+  max-width: 100%;
+}
+.panel-ocupacion h3 { margin: 0 0 1rem; }
+
+.kpis { display: flex; gap: 0.6rem; }
+.kpi {
+  flex: 1;
+  text-align: center;
+  background: #f6f8fa;
+  border-radius: 8px;
+  padding: 0.7rem 0.3rem;
+}
+.kpi .num { display: block; font-size: 1.6rem; font-weight: 700; line-height: 1; }
+.kpi .lbl { display: block; margin-top: 0.3rem; font-size: 0.75rem; color: #666; }
+.kpi.libre     .num { color: #0a7d28; }
+.kpi.ocupado   .num { color: #b00020; }
+.kpi.reservado .num { color: #b07d0a; }
+
+.ocupacion-pct { margin-top: 1.1rem; }
+.pct-cabecera {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+}
+.barra-fondo {
+  background: #e9eef3;
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+.barra-llena {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0a7d28, #b07d0a 70%, #b00020);
+  transition: width 0.4s ease;
+}
+.pie { margin: 0.5rem 0 0; font-size: 0.8rem; color: #666; }
 .banner-mensual {
   background: #fff4e0;
   border: 1px solid #f0c97a;

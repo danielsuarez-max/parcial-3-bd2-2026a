@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';   // habilita [(ngModel)] en la plantilla
 import { Api, Ocupacion, EspacioEstado, TipoVehiculoItem } from '../../services/api';
 
@@ -15,6 +15,16 @@ export class OcupacionComponent {
   espacios = signal<EspacioEstado[]>([]);   // los 100 espacios para el mapa
   cargando = signal(true);
   error = signal<string | null>(null);
+
+  // ===== Alerta de capacidad (señal derivada de los KPI) =====
+  // computed() se recalcula solo cada vez que cambia datos(): al recargar (botón
+  // Actualizar) el banner aparece o desaparece sin que escribamos lógica extra.
+  nivelAlerta = computed<'normal' | 'critico' | 'lleno'>(() => {
+    const pct = this.datos()?.porcentaje_ocupacion ?? 0;
+    if (pct >= 100) return 'lleno';
+    if (pct >= 90) return 'critico';
+    return 'normal';
+  });
 
   // ===== Buscador por tipo (RF5, fusionado desde "Espacios libres") =====
   opciones = signal<{ label: string; id_tipo: number }[]>([]);  // tipos agrupados
@@ -33,6 +43,7 @@ export class OcupacionComponent {
     });
   }
 
+  /** Carga los datos de ocupación. Reutilizable por el botón "Actualizar". */
   cargar(): void {
     this.cargando.set(true);
     this.error.set(null);

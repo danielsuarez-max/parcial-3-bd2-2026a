@@ -37,8 +37,17 @@
     </div>
   </div>
 
-  @if (d.porcentaje_ocupacion >= 90) {
-    <p class="error">¡Parqueadero casi lleno!</p>
+  <!-- Alerta visual de capacidad: el nivel lo decide el computed nivelAlerta() -->
+  @if (nivelAlerta() !== 'normal') {
+    <div class="alerta-capacidad"
+         [class.critico]="nivelAlerta() === 'critico'"
+         [class.lleno]="nivelAlerta() === 'lleno'">
+      @if (nivelAlerta() === 'lleno') {
+        🚫 <strong>Parqueadero LLENO</strong> — no hay espacios disponibles.
+      } @else {
+        ⚠️ <strong>Capacidad casi llena</strong> — quedan {{ d.libres }} espacio(s) libre(s).
+      }
+    </div>
   }
 
   <!-- Mapa del parqueadero: un cuadro por espacio, coloreado según su estado -->

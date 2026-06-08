@@ -1,7 +1,7 @@
 import { Component, signal, inject, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, MensualidadActiva
+  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, MensualidadActiva, Ocupacion
 } from '../../services/api';
 import { Toast } from '../../services/toast';
 
@@ -35,11 +35,24 @@ export class RegistrarEntradaComponent {
   // --- Estado del envío ---
   enviando = signal(false);
 
+  // --- Ocupación actual (panel lateral informativo) ---
+  ocupacion = signal<Ocupacion | null>(null);
+
   constructor() {
     // Llenamos el dropdown de tipos al abrir la vista.
     this.api.getTipos().subscribe({
       next: (resp) => this.tipos.set(resp.datos),
       error: (err) => { console.error(err); this.toast.error('No se pudieron cargar los tipos.'); }
+    });
+
+    this.cargarOcupacion();
+  }
+
+  /** Trae el estado de ocupación para el panel lateral. */
+  private cargarOcupacion(): void {
+    this.api.getOcupacion().subscribe({
+      next: (resp) => this.ocupacion.set(resp),
+      error: (err) => console.error(err)
     });
   }
 
@@ -151,6 +164,7 @@ export class RegistrarEntradaComponent {
         this.toast.exito(`${resp.mensaje}: placa ${resp.placa} (${resp.modalidad}) en el espacio N° ${resp.numero_espacio}.`);
         this.enviando.set(false);
         this.limpiar();
+        this.cargarOcupacion();   // el panel refleja el nuevo estado
       },
       error: (err) => {
         this.toast.error(this.extraerError(err));
