@@ -6,40 +6,57 @@
 
 h3 { margin-top: 1.8rem; }
 
-/* Cuadrícula: los fieldsets se acomodan en columnas cuando hay ancho. */
-.formulario {
+.formulario { max-width: 900px; }
+
+/* Fila superior: Cliente | Contrato en dos columnas (se apilan si no caben). */
+.cols {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
   align-items: start;
 }
 .formulario fieldset {
   border: 1px solid #ddd;
   border-radius: 6px;
-  margin: 0;
+  margin: 0 0 1rem;
   padding: 0.5rem 1rem 1rem;
 }
+.formulario fieldset.ancho { margin-top: 0; }   /* Vehículos a todo el ancho */
 .formulario legend { font-weight: 600; color: #2c3e50; padding: 0 0.4rem; }
 /* Inputs/selects sueltos (Cliente y Contrato) ocupan todo el ancho de su columna. */
-.formulario fieldset > input,
-.formulario fieldset > select { width: 100%; box-sizing: border-box; }
-/* El botón de enviar ocupa toda la fila. */
-.formulario .acciones { grid-column: 1 / -1; margin-top: 0.5rem; }
+.cols fieldset > input,
+.cols fieldset > select { width: 100%; box-sizing: border-box; }
+.formulario .acciones { margin-top: 0.5rem; }
 
 .calculado {
   margin: 0.5rem 0 0;
   color: #2c3e50;
 }
-.calculado .hint { color: #888; font-size: 0.85rem; font-weight: 400; }
 
 .fila-vehiculo {
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 0.5rem;
+  flex-wrap: wrap;
 }
 .fila-vehiculo input,
 .fila-vehiculo select { min-width: 0; flex: 1; }
+.hint-cupo { flex: 1; color: #888; font-size: 0.88rem; font-style: italic; }
+
+/* Vehículos con su cupo en la tabla de la lista */
+.chip-veh {
+  display: inline-block;
+  background: #eef3f8;
+  border: 1px solid #cfd8e3;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  margin: 0.1rem 0.2rem 0.1rem 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.ancho-modal { max-width: 560px; }
 
 .btn-quitar {
   background: #b00020;

@@ -127,12 +127,14 @@ CREATE TABLE clientes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 6) mensualidades — Contrato mensual: cliente + espacio + período
+-- 6) mensualidades — Contrato mensual: cliente + período
+--    El espacio NO va aquí: cada vehículo cubierto tiene su propio cupo
+--    (ver mensualidad_vehiculo). Así dos vehículos del mismo cliente pueden
+--    estar dentro a la vez y cada uno usa un espacio compatible con su tipo.
 -- =========================================================================
 CREATE TABLE mensualidades (
     id_mensualidad  INT AUTO_INCREMENT,
     id_cliente      INT          NOT NULL,
-    id_espacio      INT          NOT NULL,
     fecha_inicio    DATE         NOT NULL,
     fecha_fin       DATE         NOT NULL,
     monto_pagado    DECIMAL(10,2) NOT NULL,
@@ -141,25 +143,26 @@ CREATE TABLE mensualidades (
     CONSTRAINT fk_mensualidades_cliente FOREIGN KEY (id_cliente)
         REFERENCES clientes (id_cliente)
         ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_mensualidades_espacio FOREIGN KEY (id_espacio)
-        REFERENCES espacios (id_espacio)
-        ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT ck_mensualidades_fechas CHECK (fecha_fin >= fecha_inicio),
     CONSTRAINT ck_mensualidades_monto  CHECK (monto_pagado >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =========================================================================
--- 7) mensualidad_vehiculo — Tabla puente N–M
+-- 7) mensualidad_vehiculo — Tabla puente N–M (cada vehículo con SU cupo)
 -- =========================================================================
 CREATE TABLE mensualidad_vehiculo (
     id_mensualidad  INT         NOT NULL,
     placa           VARCHAR(10) NOT NULL,
+    id_espacio      INT         NOT NULL,   -- cupo reservado para ESTE vehículo
     CONSTRAINT pk_mensualidad_vehiculo PRIMARY KEY (id_mensualidad, placa),
     CONSTRAINT fk_mv_mensualidad FOREIGN KEY (id_mensualidad)
         REFERENCES mensualidades (id_mensualidad)
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_mv_vehiculo FOREIGN KEY (placa)
         REFERENCES vehiculos (placa)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_mv_espacio FOREIGN KEY (id_espacio)
+        REFERENCES espacios (id_espacio)
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -175,24 +175,27 @@ INSERT INTO vehiculos (placa, id_tipo, color, marca) VALUES
 -- 6) mensualidades — 12 activas + 3 vencidas
 --    Las activas cubren 2026-05-30 (fecha de hoy)
 -- =========================================================================
-INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado) VALUES
+-- El espacio ya NO va en mensualidades: cada vehículo tiene su cupo en
+-- mensualidad_vehiculo (ver más abajo). El monto es la suma del valor mensual
+-- de los vehículos cubiertos (Ana y Valentina cubren carro+moto = 150000+70000).
+INSERT INTO mensualidades (id_cliente, fecha_inicio, fecha_fin, monto_pagado, estado) VALUES
     -- ACTIVAS (cubren hoy 2026-05-30)
-    ( 1,  1, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- Ana — espacio 1
-    ( 2,  2, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Carlos — espacio 2
-    ( 3,  3, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- Lucía — espacio 3
-    ( 4,  4, '2026-05-10', '2026-06-09', 180000.00, 'ACTIVA'),  -- Jorge (camioneta) — espacio 4
-    ( 5,  5, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- María — espacio 5
-    ( 6, 71, '2026-05-05', '2026-06-04',  80000.00, 'ACTIVA'),  -- Diego (moto) — espacio 71
-    ( 7,  6, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- Valentina — espacio 6
-    ( 8,  7, '2026-05-20', '2026-06-19', 150000.00, 'ACTIVA'),  -- Sebastián — espacio 7
-    ( 9,  8, '2026-05-01', '2026-05-31', 180000.00, 'ACTIVA'),  -- Isabella (camioneta) — espacio 8
-    (10,  9, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Andrés — espacio 9
-    (11, 72, '2026-05-01', '2026-05-31',  80000.00, 'ACTIVA'),  -- Camila (moto) — espacio 72
-    (12, 10, '2026-05-25', '2026-06-24', 150000.00, 'ACTIVA'),  -- Mateo — espacio 10
+    ( 1, '2026-05-01', '2026-05-31', 220000.00, 'ACTIVA'),  -- Ana (carro + moto)
+    ( 2, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Carlos
+    ( 3, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- Lucía
+    ( 4, '2026-05-10', '2026-06-09', 180000.00, 'ACTIVA'),  -- Jorge (camioneta)
+    ( 5, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- María
+    ( 6, '2026-05-05', '2026-06-04',  70000.00, 'ACTIVA'),  -- Diego (moto)
+    ( 7, '2026-05-01', '2026-05-31', 220000.00, 'ACTIVA'),  -- Valentina (carro + moto)
+    ( 8, '2026-05-20', '2026-06-19', 150000.00, 'ACTIVA'),  -- Sebastián
+    ( 9, '2026-05-01', '2026-05-31', 180000.00, 'ACTIVA'),  -- Isabella (camioneta)
+    (10, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Andrés
+    (11, '2026-05-01', '2026-05-31',  70000.00, 'ACTIVA'),  -- Camila (moto)
+    (12, '2026-05-25', '2026-06-24', 150000.00, 'ACTIVA'),  -- Mateo
     -- VENCIDAS (histórico)
-    ( 1,  1, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA'),  -- Renovación previa de Ana
-    ( 3,  3, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA'),
-    ( 5,  5, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA');
+    ( 1, '2026-04-01', '2026-04-30', 220000.00, 'VENCIDA'),  -- Renovación previa de Ana
+    ( 3, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA'),
+    ( 5, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA');
 -- IDs mensualidad: 1..15
 
 -- =========================================================================
@@ -200,24 +203,26 @@ INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, mont
 --    Algunos clientes (Ana, Valentina) tienen 2 vehículos en su mensualidad
 --    para demostrar la relación N-M.
 -- =========================================================================
-INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES
+-- Cada vehículo tiene SU espacio compatible y distinto:
+--   carros/camionetas → 1-10 (zona grande);  motos → 71-74.
+INSERT INTO mensualidad_vehiculo (id_mensualidad, placa, id_espacio) VALUES
     -- Mensualidades ACTIVAS
-    ( 1, 'ABC123'),  ( 1, 'ABC12D'),    -- Ana: carro + moto
-    ( 2, 'DEF456'),                     -- Carlos: solo carro
-    ( 3, 'GHI789'),                     -- Lucía
-    ( 4, 'JKL012'),                     -- Jorge (camioneta)
-    ( 5, 'MNO345'),                     -- María
-    ( 6, 'PQR67D'),                     -- Diego (moto)
-    ( 7, 'STU901'),  ( 7, 'STU90D'),    -- Valentina: carro + moto
-    ( 8, 'VWX234'),                     -- Sebastián
-    ( 9, 'YZA567'),                     -- Isabella (camioneta)
-    (10, 'BCD890'),                     -- Andrés
-    (11, 'EFG12D'),                     -- Camila (moto)
-    (12, 'HIJ456'),                     -- Mateo
-    -- Mensualidades VENCIDAS (mismos vehículos cubiertos en el período pasado)
-    (13, 'ABC123'),  (13, 'ABC12D'),
-    (14, 'GHI789'),
-    (15, 'MNO345');
+    ( 1, 'ABC123',  1),  ( 1, 'ABC12D', 71),   -- Ana: carro(1) + moto(71)
+    ( 2, 'DEF456',  2),                         -- Carlos: carro(2)
+    ( 3, 'GHI789',  3),                         -- Lucía: carro(3)
+    ( 4, 'JKL012',  4),                         -- Jorge: camioneta(4)
+    ( 5, 'MNO345',  5),                         -- María: carro(5)
+    ( 6, 'PQR67D', 72),                         -- Diego: moto(72)
+    ( 7, 'STU901',  6),  ( 7, 'STU90D', 73),   -- Valentina: carro(6) + moto(73)
+    ( 8, 'VWX234',  7),                         -- Sebastián: carro(7)
+    ( 9, 'YZA567',  8),                         -- Isabella: camioneta(8)
+    (10, 'BCD890',  9),                         -- Andrés: carro(9)
+    (11, 'EFG12D', 74),                         -- Camila: moto(74)
+    (12, 'HIJ456', 10),                         -- Mateo: carro(10)
+    -- Mensualidades VENCIDAS (histórico; sus espacios ya no se reservan)
+    (13, 'ABC123',  1),  (13, 'ABC12D', 71),
+    (14, 'GHI789',  3),
+    (15, 'MNO345',  5);
 
 -- =========================================================================
 -- 8) ingresos — 60 ingresos
@@ -249,18 +254,18 @@ INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, 
     ('MNO345',  5, '2026-05-04 07:15:00', '2026-05-04 18:45:00', 1,  5, NULL, 0),
     ('MNO345',  5, '2026-05-08 07:30:00', '2026-05-08 17:00:00', 1,  5, NULL, 0),
     ('MNO345',  5, '2026-05-21 08:00:00', '2026-05-21 19:00:00', 1,  5, NULL, 0),
-    ('PQR67D', 71, '2026-05-07 09:00:00', '2026-05-07 13:00:00', 1,  6, NULL, 0),
-    ('PQR67D', 71, '2026-05-13 10:30:00', '2026-05-13 16:30:00', 1,  6, NULL, 0),
+    ('PQR67D', 72, '2026-05-07 09:00:00', '2026-05-07 13:00:00', 1,  6, NULL, 0),
+    ('PQR67D', 72, '2026-05-13 10:30:00', '2026-05-13 16:30:00', 1,  6, NULL, 0),
     ('STU901',  6, '2026-05-09 07:45:00', '2026-05-09 18:15:00', 1,  7, NULL, 0),
-    ('STU90D', 72, '2026-05-15 09:00:00', '2026-05-15 12:00:00', 1,  7, NULL, 0),
+    ('STU90D', 73, '2026-05-15 09:00:00', '2026-05-15 12:00:00', 1,  7, NULL, 0),
     ('VWX234',  7, '2026-05-22 08:00:00', '2026-05-22 17:30:00', 1,  8, NULL, 0),
     ('VWX234',  7, '2026-05-26 07:30:00', '2026-05-26 18:00:00', 1,  8, NULL, 0),
     ('YZA567',  8, '2026-05-17 07:00:00', '2026-05-17 18:30:00', 1,  9, NULL, 0),
     ('YZA567',  8, '2026-05-23 08:15:00', '2026-05-23 17:45:00', 1,  9, NULL, 0),
     ('BCD890',  9, '2026-05-25 07:30:00', '2026-05-25 18:00:00', 1, 10, NULL, 0),
-    ('EFG12D', 72, '2026-05-02 10:00:00', '2026-05-02 14:30:00', 1, 11, NULL, 0),
-    ('EFG12D', 72, '2026-05-11 09:30:00', '2026-05-11 13:00:00', 1, 11, NULL, 0),
-    ('EFG12D', 72, '2026-05-24 11:00:00', '2026-05-24 15:30:00', 1, 11, NULL, 0),
+    ('EFG12D', 74, '2026-05-02 10:00:00', '2026-05-02 14:30:00', 1, 11, NULL, 0),
+    ('EFG12D', 74, '2026-05-11 09:30:00', '2026-05-11 13:00:00', 1, 11, NULL, 0),
+    ('EFG12D', 74, '2026-05-24 11:00:00', '2026-05-24 15:30:00', 1, 11, NULL, 0),
     ('HIJ456', 10, '2026-05-27 08:00:00', '2026-05-27 17:30:00', 1, 12, NULL, 0),
     ('HIJ456', 10, '2026-05-28 07:30:00', '2026-05-28 18:30:00', 1, 12, NULL, 0),
     ('ABC123',  1, '2026-05-29 07:45:00', '2026-05-29 18:00:00', 1,  1, NULL, 0);
@@ -301,7 +306,7 @@ INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, 
     -- Mensuales actualmente dentro
     ('DEF456',  2, '2026-05-30 07:30:00', NULL, 1,  2, NULL, NULL),
     ('JKL012',  4, '2026-05-30 08:15:00', NULL, 1,  4, NULL, NULL),
-    ('PQR67D', 71, '2026-05-30 09:00:00', NULL, 1,  6, NULL, NULL),
+    ('PQR67D', 72, '2026-05-30 09:00:00', NULL, 1,  6, NULL, NULL),
     ('VWX234',  7, '2026-05-30 07:45:00', NULL, 1,  8, NULL, NULL),
     -- Ocasionales actualmente dentro
     ('OCC002', 27, '2026-05-30 09:30:00', NULL, 0, NULL, 1, NULL),
@@ -320,12 +325,13 @@ INSERT INTO ingresos (placa, id_espacio, fecha_hora_entrada, fecha_hora_salida, 
 
 -- Espacios actualmente ocupados (los 10 ingresos abiertos)
 UPDATE espacios SET estado = 'OCUPADO'
-    WHERE id_espacio IN (2, 4, 71, 7, 27, 28, 79, 93, 29, 30);
+    WHERE id_espacio IN (2, 4, 72, 7, 27, 28, 79, 93, 29, 30);
 
--- Espacios reservados (asignados a mensualidades activas pero sin uso ahora)
+-- Espacios reservados (cupos de mensualidades activas sin uso ahora mismo)
+--   Carros/camionetas: 1(Ana) 3(Lucía) 5(María) 6(Valentina) 8(Isabella) 9(Andrés) 10(Mateo)
+--   Motos: 71(Ana) 73(Valentina) 74(Camila)   [72 de Diego está OCUPADO ahora]
 UPDATE espacios SET estado = 'RESERVADO'
-    WHERE id_espacio IN (1, 3, 5, 72, 6, 8, 9, 10);
---   (1=Ana, 3=Lucía, 5=María, 72=Camila, 6=Valentina, 8=Isabella, 9=Andrés, 10=Mateo)
+    WHERE id_espacio IN (1, 3, 5, 6, 8, 9, 10, 71, 73, 74);
 
 -- =========================================================================
 -- Verificación rápida (descomenta si quieres verlas tras ejecutar):

@@ -20,11 +20,12 @@ CREATE TABLE IF NOT EXISTS tarifa_mensual (
 );
 
 -- Valores semilla (uno por cada tipo de tipo_vehiculo: 1..5)
+-- IDs reales: 1=Carro, 2=Camioneta, 3=Camión, 4=Moto, 5=Bicicleta
 INSERT INTO tarifa_mensual (id_tipo, valor_mes) VALUES
     (1, 150000.00),   -- Carro
-    (2,  70000.00),   -- Moto
-    (3,  30000.00),   -- Bicicleta
-    (4, 180000.00),   -- Camioneta
-    (5, 220000.00)    -- Camión
+    (2, 180000.00),   -- Camioneta
+    (3, 220000.00),   -- Camión
+    (4,  70000.00),   -- Moto
+    (5,  30000.00)    -- Bicicleta
 AS nuevos
 ON DUPLICATE KEY UPDATE valor_mes = nuevos.valor_mes;

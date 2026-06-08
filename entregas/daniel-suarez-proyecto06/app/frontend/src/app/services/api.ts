@@ -127,16 +127,21 @@ export interface SalidaOut {
   nota?: string;               // solo mensual ("incluido en la mensualidad")
 }
 
+/** Un vehículo de la mensualidad con su cupo (en la lista). */
+export interface VehiculoConCupo {
+  placa: string;
+  numero_espacio: number;
+}
+
 /** Una fila de la lista de mensualidades (GET /mensualidades). */
 export interface Mensualidad {
   id_mensualidad: number;
   cliente: string;
-  numero_espacio: number;
   estado: 'ACTIVA' | 'VENCIDA' | 'CANCELADA';
   fecha_inicio: string;
   fecha_fin: string;
   monto_pagado: number;
-  placas: string[];
+  vehiculos: VehiculoConCupo[];   // cada vehículo con SU cupo
 }
 
 /** Datos del cliente para crear una mensualidad. */
@@ -147,17 +152,17 @@ export interface ClienteIn {
   email?: string | null;
 }
 
-/** Un vehículo cubierto por la mensualidad. */
+/** Un vehículo cubierto por la mensualidad, con SU cupo. */
 export interface VehiculoMensualIn {
   placa: string;
   id_tipo: number;
+  id_espacio: number;
 }
 
 /** Datos para crear una mensualidad (POST /mensualidades).
  *  fecha_fin y monto los calcula el backend, por eso no se envían. */
 export interface MensualidadIn {
   cliente: ClienteIn;
-  id_espacio: number;
   fecha_inicio: string;
   vehiculos: VehiculoMensualIn[];
 }
@@ -174,6 +179,8 @@ export interface VehiculoDeMensualidad {
   placa: string;
   id_tipo: number;
   tipo: string;
+  id_espacio: number;
+  numero_espacio: number;
 }
 
 /** Una mensualidad activa de una placa (GET /vehiculos/{placa}/mensualidad). */

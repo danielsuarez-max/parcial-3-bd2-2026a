@@ -51,36 +51,46 @@ def sumar_un_mes(d: date) -> date:
     return date(anio, mes, min(d.day, ultimo_dia))
 
 
-def validar_cupo_admite_tipos(cur, id_espacio, numero_espacio, vehiculos):
+def validar_espacio_para_tipo(cur, id_espacio, id_tipo):
     """
-    Verifica que el espacio admita TODOS los tipos de vehículo cubiertos
-    (según espacio_tipo_permitido). Si alguno no es compatible, lanza 409.
-    Refuerza en el servidor la regla 'el cupo depende del tipo'.
+    Valida el cupo de UN vehículo: el espacio debe existir, estar LIBRE y admitir
+    ese tipo (espacio_tipo_permitido). Lanza 404/409 con mensaje claro.
+    Devuelve el número visible del espacio.
     """
-    for veh in vehiculos:
-        cur.execute(
-            "SELECT 1 FROM espacio_tipo_permitido WHERE id_espacio = %s AND id_tipo = %s",
-            (id_espacio, veh.id_tipo),
+    cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (id_espacio,))
+    esp = cur.fetchone()
+    if not esp:
+        raise HTTPException(status_code=404, detail=f"No existe un espacio con id {id_espacio}.")
+    if esp["estado"] != "LIBRE":
+        raise HTTPException(
+            status_code=409,
+            detail=f"El espacio N° {esp['numero']} no está libre (estado: {esp['estado']}).",
         )
-        if not cur.fetchone():
-            cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (veh.id_tipo,))
-            nom = cur.fetchone()
-            raise HTTPException(
-                status_code=409,
-                detail=f"El cupo N° {numero_espacio} no admite vehículos de tipo "
-                       f"'{nom['nombre'] if nom else veh.id_tipo}'.",
-            )
+    cur.execute(
+        "SELECT 1 FROM espacio_tipo_permitido WHERE id_espacio = %s AND id_tipo = %s",
+        (id_espacio, id_tipo),
+    )
+    if not cur.fetchone():
+        cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (id_tipo,))
+        nom = cur.fetchone()
+        raise HTTPException(
+            status_code=409,
+            detail=f"El espacio N° {esp['numero']} no admite vehículos de tipo "
+                   f"'{nom['nombre'] if nom else id_tipo}'.",
+        )
+    return esp["numero"]
 
 
 # Catálogo fijo de tipos de vehículo (coincide con los IDs de la tabla tipo_vehiculo).
 # Al usarlo como tipo de un campo, Swagger lo muestra como un MENÚ DESPLEGABLE
 # y solo acepta estos valores -> imposible mandar un id_tipo inválido.
 class TipoVehiculo(IntEnum):
+    # El orden DEBE coincidir con la tabla tipo_vehiculo de la BD.
     CARRO = 1
-    MOTO = 2
-    BICICLETA = 3
-    CAMIONETA = 4
-    CAMION = 5
+    CAMIONETA = 2
+    CAMION = 3
+    MOTO = 4
+    BICICLETA = 5
 
 
 @app.get("/")
@@ -285,16 +295,20 @@ def listar_espacios():
             e.numero,
             e.estado,
             i.placa            AS placa,            -- vehículo dentro ahora (si lo hay)
-            c.nombre_completo  AS reservado_para    -- dueño del cupo (si está reservado)
+            r.nombre_completo  AS reservado_para    -- dueño del cupo (si está reservado)
         FROM espacios e
         LEFT JOIN ingresos i
                ON i.id_espacio = e.id_espacio
               AND i.fecha_hora_salida IS NULL       -- solo el ingreso ABIERTO
-        LEFT JOIN mensualidades m
-               ON m.id_espacio = e.id_espacio
-              AND m.estado = 'ACTIVA'
-              AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
-        LEFT JOIN clientes c ON c.id_cliente = m.id_cliente
+        LEFT JOIN (
+            -- Reserva ACTIVA de cada espacio (un cupo solo puede tener una a la vez)
+            SELECT mv.id_espacio, c.nombre_completo
+            FROM mensualidad_vehiculo mv
+            JOIN mensualidades m ON m.id_mensualidad = mv.id_mensualidad
+             AND m.estado = 'ACTIVA'
+             AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
+            JOIN clientes c ON c.id_cliente = m.id_cliente
+        ) r ON r.id_espacio = e.id_espacio
         ORDER BY e.numero
     """
     return con_total(run_query(sql))
@@ -329,12 +343,12 @@ def mensualidad_de_placa(placa: str):
     Ejemplo:  /vehiculos/BCD890/mensualidad
     """
     sql = """
-        SELECT m.id_mensualidad, m.id_espacio, e.numero AS numero_espacio,
+        SELECT m.id_mensualidad, mv.id_espacio, e.numero AS numero_espacio,
                m.fecha_inicio, m.fecha_fin, c.nombre_completo
         FROM mensualidades m
         JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
         JOIN clientes c               ON c.id_cliente = m.id_cliente
-        JOIN espacios e               ON e.id_espacio = m.id_espacio
+        JOIN espacios e               ON e.id_espacio = mv.id_espacio
         WHERE mv.placa = %s
           AND m.estado = 'ACTIVA'
           AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
@@ -454,10 +468,10 @@ def registrar_entrada(entrada: EntradaIn):
             )
             id_tipo_efectivo = entrada.id_tipo
 
-        # 5) ¿Tiene mensualidad activa HOY?
+        # 5) ¿Tiene mensualidad activa HOY?  (el cupo es el de ESTA placa)
         cur.execute(
             """
-            SELECT m.id_mensualidad, m.id_espacio
+            SELECT m.id_mensualidad, mv.id_espacio
             FROM mensualidades m
             JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
             WHERE mv.placa = %s AND m.estado = 'ACTIVA'
@@ -468,7 +482,7 @@ def registrar_entrada(entrada: EntradaIn):
         mensualidad = cur.fetchone()
 
         if mensualidad:
-            # --- MENSUAL: entra a su espacio reservado, SIN tarifa por hora ---
+            # --- MENSUAL: entra a SU espacio reservado, SIN tarifa por hora ---
             id_espacio = mensualidad["id_espacio"]
             cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (id_espacio,))
             esp_mensual = cur.fetchone()
@@ -724,9 +738,10 @@ def listar_clientes():
 # ============================================================
 
 class VehiculoMensualIn(BaseModel):
-    """Un vehículo cubierto por la mensualidad (se crea si no existe)."""
+    """Un vehículo cubierto por la mensualidad (se crea si no existe), con SU cupo."""
     placa: str
     id_tipo: TipoVehiculo
+    id_espacio: int           # cupo reservado para ESTE vehículo
 
     @field_validator("placa")
     @classmethod
@@ -739,12 +754,11 @@ class VehiculoMensualIn(BaseModel):
 
 class MensualidadIn(BaseModel):
     """
-    Alta de una mensualidad: cliente + cupo + fecha de inicio + vehículos.
-    La fecha de fin y el monto NO se reciben: los calcula el backend
+    Alta de una mensualidad: cliente + fecha de inicio + vehículos (cada uno con
+    su espacio). La fecha de fin y el monto NO se reciben: los calcula el backend
     (fin = inicio + 1 mes; monto = suma del valor mensual de cada vehículo).
     """
     cliente: ClienteIn
-    id_espacio: int
     fecha_inicio: date
     vehiculos: list[VehiculoMensualIn]
 
@@ -777,32 +791,15 @@ def crear_mensualidad(m: MensualidadIn):
             id_cliente = cur.lastrowid
             cliente_nuevo = True
 
-        # 2) El espacio debe existir
-        cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (m.id_espacio,))
-        espacio = cur.fetchone()
-        if not espacio:
-            raise HTTPException(status_code=404, detail=f"No existe un espacio con id {m.id_espacio}.")
+        # 2) No se puede repetir el mismo espacio entre dos vehículos
+        espacios_pedidos = [veh.id_espacio for veh in m.vehiculos]
+        if len(espacios_pedidos) != len(set(espacios_pedidos)):
+            raise HTTPException(status_code=409, detail="Cada vehículo debe tener un espacio distinto.")
 
-        # 2b) El cupo debe admitir TODOS los tipos cubiertos (espacio_tipo_permitido)
-        validar_cupo_admite_tipos(cur, m.id_espacio, espacio["numero"], m.vehiculos)
-
-        # 2) El cupo no puede estar ya asignado a otra mensualidad activa que se solape
-        cur.execute(
-            """
-            SELECT id_mensualidad FROM mensualidades
-            WHERE id_espacio = %s AND estado = 'ACTIVA'
-              AND fecha_inicio <= %s AND fecha_fin >= %s
-            """,
-            (m.id_espacio, fecha_fin, m.fecha_inicio),
-        )
-        if cur.fetchone():
-            raise HTTPException(
-                status_code=409,
-                detail=f"El espacio N° {espacio['numero']} ya está asignado a otra mensualidad activa en esas fechas.",
-            )
-
-        # 3) Crear los vehículos que no existan (validando formato)
+        monto = 0
+        numeros = []   # números de espacio asignados (para el mensaje)
         for veh in m.vehiculos:
+            # 3) Crear el vehículo si no existe (validando formato y coherencia de tipo)
             cur.execute("SELECT id_tipo FROM vehiculos WHERE placa = %s", (veh.placa,))
             existente = cur.fetchone()
             if existente:
@@ -819,45 +816,42 @@ def crear_mensualidad(m: MensualidadIn):
                 validar_formato_placa(veh.placa, tipo["nombre"])
                 cur.execute("INSERT INTO vehiculos (placa, id_tipo) VALUES (%s, %s)", (veh.placa, veh.id_tipo))
 
-        # 3b) Calcular el MONTO desde el catálogo: suma del valor mensual de
-        #     cada vehículo cubierto, según su tipo.
-        monto = 0
-        for veh in m.vehiculos:
+            # 4) Validar el espacio de ESE vehículo (existe + LIBRE + compatible)
+            numeros.append(validar_espacio_para_tipo(cur, veh.id_espacio, veh.id_tipo))
+
+            # 5) Sumar el valor mensual del tipo (catálogo)
             cur.execute("SELECT valor_mes FROM tarifa_mensual WHERE id_tipo = %s", (veh.id_tipo,))
             fila_tarifa = cur.fetchone()
             if not fila_tarifa:
-                cur.execute("SELECT nombre FROM tipo_vehiculo WHERE id_tipo = %s", (veh.id_tipo,))
-                nombre = cur.fetchone()
                 raise HTTPException(
                     status_code=409,
-                    detail=f"No hay tarifa mensual configurada para el tipo '{nombre['nombre'] if nombre else veh.id_tipo}'.",
+                    detail=f"No hay tarifa mensual configurada para el tipo con id {veh.id_tipo}.",
                 )
             monto += float(fila_tarifa["valor_mes"])
 
-        # 4) Insertar la mensualidad (fecha_fin y monto CALCULADOS) y asociar los vehículos
+        # 6) Insertar la mensualidad (sin espacio) y las asociaciones (placa + su cupo)
         cur.execute(
             """
-            INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado)
-            VALUES (%s, %s, %s, %s, %s, 'ACTIVA')
+            INSERT INTO mensualidades (id_cliente, fecha_inicio, fecha_fin, monto_pagado, estado)
+            VALUES (%s, %s, %s, %s, 'ACTIVA')
             """,
-            (id_cliente, m.id_espacio, m.fecha_inicio, fecha_fin, monto),
+            (id_cliente, m.fecha_inicio, fecha_fin, monto),
         )
         id_mensualidad = cur.lastrowid
         for veh in m.vehiculos:
             cur.execute(
-                "INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES (%s, %s)",
-                (id_mensualidad, veh.placa),
+                "INSERT INTO mensualidad_vehiculo (id_mensualidad, placa, id_espacio) VALUES (%s, %s, %s)",
+                (id_mensualidad, veh.placa, veh.id_espacio),
             )
-
-        # 5) Reservar el cupo
-        cur.execute("UPDATE espacios SET estado = 'RESERVADO' WHERE id_espacio = %s", (m.id_espacio,))
+            # 7) Reservar el cupo de ese vehículo
+            cur.execute("UPDATE espacios SET estado = 'RESERVADO' WHERE id_espacio = %s", (veh.id_espacio,))
 
     return {
         "mensaje": "Mensualidad creada",
         "id_mensualidad": id_mensualidad,
         "id_cliente": id_cliente,
         "cliente_nuevo": cliente_nuevo,
-        "numero_espacio": espacio["numero"],
+        "numeros_espacio": numeros,
         "fecha_fin": str(fecha_fin),
         "monto": monto,
         "vehiculos": [v.placa for v in m.vehiculos],
@@ -866,29 +860,35 @@ def crear_mensualidad(m: MensualidadIn):
 
 @app.get("/mensualidades")
 def listar_mensualidades():
-    """RF4 — Mensualidades con su cliente, cupo, estado, fechas y placas."""
+    """RF4 — Mensualidades con su cliente, estado, fechas, monto y vehículos (cada
+    uno con SU cupo). 'vehiculos' es una lista de {placa, numero_espacio}."""
     sql = """
         SELECT
             m.id_mensualidad,
-            c.nombre_completo                        AS cliente,
-            e.numero                                 AS numero_espacio,
+            c.nombre_completo                                          AS cliente,
             m.estado,
             m.fecha_inicio,
             m.fecha_fin,
             m.monto_pagado,
-            GROUP_CONCAT(mv.placa ORDER BY mv.placa) AS placas
+            GROUP_CONCAT(CONCAT(mv.placa, ':', e.numero) ORDER BY mv.placa) AS veh
         FROM mensualidades m
         JOIN clientes c  ON c.id_cliente = m.id_cliente
-        JOIN espacios e  ON e.id_espacio = m.id_espacio
         LEFT JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
-        GROUP BY m.id_mensualidad, c.nombre_completo, e.numero, m.estado,
+        LEFT JOIN espacios e ON e.id_espacio = mv.id_espacio
+        GROUP BY m.id_mensualidad, c.nombre_completo, m.estado,
                  m.fecha_inicio, m.fecha_fin, m.monto_pagado
         ORDER BY m.fecha_inicio DESC
     """
     filas = run_query(sql)
     for f in filas:
-        # "ABC123,DEF45G" -> ["ABC123", "DEF45G"]  (lista vacía si no tiene vehículos)
-        f["placas"] = f["placas"].split(",") if f["placas"] else []
+        # "ABC123:1,ABC12D:71" -> [{placa, numero_espacio}, ...]
+        vehiculos = []
+        if f["veh"]:
+            for par in f["veh"].split(","):
+                placa, numero = par.split(":")
+                vehiculos.append({"placa": placa, "numero_espacio": int(numero)})
+        f["vehiculos"] = vehiculos
+        del f["veh"]
     return con_total(filas)
 
 
@@ -896,10 +896,12 @@ def listar_mensualidades():
 def vehiculos_de_mensualidad(id_mensualidad: int):
     """RF4 — Vehículos cubiertos por una mensualidad (para precargar la renovación)."""
     sql = """
-        SELECT v.placa, v.id_tipo, tv.nombre AS tipo
+        SELECT v.placa, v.id_tipo, tv.nombre AS tipo,
+               mv.id_espacio, e.numero AS numero_espacio
         FROM mensualidad_vehiculo mv
         JOIN vehiculos v       ON v.placa = mv.placa
         JOIN tipo_vehiculo tv ON tv.id_tipo = v.id_tipo
+        JOIN espacios e        ON e.id_espacio = mv.id_espacio
         WHERE mv.id_mensualidad = %s
         ORDER BY v.placa
     """
@@ -924,9 +926,9 @@ def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
         raise HTTPException(status_code=422, detail="La renovación debe cubrir al menos un vehículo.")
 
     with transaccion() as cur:
-        # 1) La mensualidad origen debe existir y estar VENCIDA
+        # 1) La mensualidad origen debe existir y estar VENCIDA (de ella tomamos el cliente)
         cur.execute(
-            "SELECT id_cliente, id_espacio, estado FROM mensualidades WHERE id_mensualidad = %s",
+            "SELECT id_cliente, estado FROM mensualidades WHERE id_mensualidad = %s",
             (id_mensualidad,),
         )
         men = cur.fetchone()
@@ -938,40 +940,20 @@ def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
                 detail=f"Solo se pueden renovar mensualidades VENCIDAS (esta está {men['estado']}).",
             )
         id_cliente = men["id_cliente"]
-        id_espacio = men["id_espacio"]
 
         # 2) Nuevas fechas: inicia hoy, dura 1 mes
         fecha_inicio = date.today()
         fecha_fin = sumar_un_mes(fecha_inicio)
 
-        # 3) El cupo debe seguir disponible
-        cur.execute("SELECT numero, estado FROM espacios WHERE id_espacio = %s", (id_espacio,))
-        espacio = cur.fetchone()
-        if espacio["estado"] == "OCUPADO":
-            raise HTTPException(
-                status_code=409,
-                detail=f"El cupo N° {espacio['numero']} está ocupado en este momento; no se puede renovar.",
-            )
-        # No debe haber otra mensualidad ACTIVA que se solape en ese cupo
-        cur.execute(
-            """
-            SELECT id_mensualidad FROM mensualidades
-            WHERE id_espacio = %s AND estado = 'ACTIVA'
-              AND fecha_inicio <= %s AND fecha_fin >= %s
-            """,
-            (id_espacio, fecha_fin, fecha_inicio),
-        )
-        if cur.fetchone():
-            raise HTTPException(
-                status_code=409,
-                detail=f"El cupo N° {espacio['numero']} ya está asignado a otra mensualidad activa.",
-            )
+        # 3) Espacios distintos entre vehículos
+        espacios_pedidos = [veh.id_espacio for veh in datos.vehiculos]
+        if len(espacios_pedidos) != len(set(espacios_pedidos)):
+            raise HTTPException(status_code=409, detail="Cada vehículo debe tener un espacio distinto.")
 
-        # 3b) El cupo debe admitir TODOS los tipos cubiertos
-        validar_cupo_admite_tipos(cur, id_espacio, espacio["numero"], datos.vehiculos)
-
-        # 4) Crear los vehículos que no existan (validando formato y coherencia de tipo)
+        monto = 0
+        numeros = []
         for veh in datos.vehiculos:
+            # 4) Crear el vehículo si no existe (validando formato y coherencia de tipo)
             cur.execute("SELECT id_tipo FROM vehiculos WHERE placa = %s", (veh.placa,))
             existente = cur.fetchone()
             if existente:
@@ -988,9 +970,10 @@ def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
                 validar_formato_placa(veh.placa, tipo["nombre"])
                 cur.execute("INSERT INTO vehiculos (placa, id_tipo) VALUES (%s, %s)", (veh.placa, veh.id_tipo))
 
-        # 5) Calcular el monto desde el catálogo
-        monto = 0
-        for veh in datos.vehiculos:
+            # 5) Validar el espacio de ese vehículo (existe + LIBRE + compatible)
+            numeros.append(validar_espacio_para_tipo(cur, veh.id_espacio, veh.id_tipo))
+
+            # 6) Sumar el valor mensual del tipo (catálogo)
             cur.execute("SELECT valor_mes FROM tarifa_mensual WHERE id_tipo = %s", (veh.id_tipo,))
             fila_tarifa = cur.fetchone()
             if not fila_tarifa:
@@ -1000,23 +983,21 @@ def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
                 )
             monto += float(fila_tarifa["valor_mes"])
 
-        # 6) Insertar la NUEVA mensualidad (período nuevo) y sus vehículos
+        # 7) Insertar la NUEVA mensualidad (período nuevo) y sus vehículos con su cupo
         cur.execute(
             """
-            INSERT INTO mensualidades (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto_pagado, estado)
-            VALUES (%s, %s, %s, %s, %s, 'ACTIVA')
+            INSERT INTO mensualidades (id_cliente, fecha_inicio, fecha_fin, monto_pagado, estado)
+            VALUES (%s, %s, %s, %s, 'ACTIVA')
             """,
-            (id_cliente, id_espacio, fecha_inicio, fecha_fin, monto),
+            (id_cliente, fecha_inicio, fecha_fin, monto),
         )
         nuevo_id = cur.lastrowid
         for veh in datos.vehiculos:
             cur.execute(
-                "INSERT INTO mensualidad_vehiculo (id_mensualidad, placa) VALUES (%s, %s)",
-                (nuevo_id, veh.placa),
+                "INSERT INTO mensualidad_vehiculo (id_mensualidad, placa, id_espacio) VALUES (%s, %s, %s)",
+                (nuevo_id, veh.placa, veh.id_espacio),
             )
-
-        # 7) Volver a reservar el cupo
-        cur.execute("UPDATE espacios SET estado = 'RESERVADO' WHERE id_espacio = %s", (id_espacio,))
+            cur.execute("UPDATE espacios SET estado = 'RESERVADO' WHERE id_espacio = %s", (veh.id_espacio,))
 
     return {
         "mensaje": "Mensualidad renovada (nuevo período)",
@@ -1043,9 +1024,8 @@ def cancelar_mensualidad(id_mensualidad: int, datos: CancelacionIn):
     with transaccion() as cur:
         cur.execute(
             """
-            SELECT m.id_espacio, m.estado, e.numero, c.nombre_completo
+            SELECT m.estado, c.nombre_completo
             FROM mensualidades m
-            JOIN espacios e  ON e.id_espacio = m.id_espacio
             JOIN clientes c  ON c.id_cliente = m.id_cliente
             WHERE m.id_mensualidad = %s
             """,
@@ -1057,26 +1037,42 @@ def cancelar_mensualidad(id_mensualidad: int, datos: CancelacionIn):
         if men["estado"] == "CANCELADA":
             raise HTTPException(status_code=409, detail="La mensualidad ya está cancelada.")
 
+        # Cupos de TODOS los vehículos de la mensualidad
+        cur.execute(
+            """
+            SELECT mv.id_espacio, e.numero, e.estado
+            FROM mensualidad_vehiculo mv
+            JOIN espacios e ON e.id_espacio = mv.id_espacio
+            WHERE mv.id_mensualidad = %s
+            """,
+            (id_mensualidad,),
+        )
+        cupos = cur.fetchall()
+
         # Doble confirmación: sin 'confirmar': true no se ejecuta, solo se avisa.
         if not datos.confirmar:
+            nums = ", ".join(f"N° {c['numero']}" for c in cupos)
             raise HTTPException(
                 status_code=409,
                 detail=(
-                    f"Vas a cancelar la mensualidad de {men['nombre_completo']} (cupo N° {men['numero']}). "
-                    f"Se liberará el cupo y NO se puede deshacer. "
+                    f"Vas a cancelar la mensualidad de {men['nombre_completo']} (cupos {nums}). "
+                    f"Se liberarán los cupos y NO se puede deshacer. "
                     f'Para confirmar, reenvía la petición con "confirmar": true.'
                 ),
             )
 
-        # No liberar el cupo si hay un vehículo dentro en ese espacio
-        cur.execute("SELECT estado FROM espacios WHERE id_espacio = %s", (men["id_espacio"],))
-        if cur.fetchone()["estado"] == "OCUPADO":
+        # No cancelar si algún cupo tiene un vehículo dentro
+        ocupados = [c["numero"] for c in cupos if c["estado"] == "OCUPADO"]
+        if ocupados:
             raise HTTPException(
                 status_code=409,
-                detail="Hay un vehículo dentro en ese cupo. Registra primero su salida.",
+                detail=f"Hay un vehículo dentro en el/los cupo(s) N° {', '.join(map(str, ocupados))}. "
+                       f"Registra primero su salida.",
             )
+
         cur.execute("UPDATE mensualidades SET estado = 'CANCELADA' WHERE id_mensualidad = %s", (id_mensualidad,))
-        cur.execute("UPDATE espacios SET estado = 'LIBRE' WHERE id_espacio = %s", (men["id_espacio"],))
+        for c in cupos:
+            cur.execute("UPDATE espacios SET estado = 'LIBRE' WHERE id_espacio = %s", (c["id_espacio"],))
     return {"mensaje": "Mensualidad cancelada", "id_mensualidad": id_mensualidad}
 
 
@@ -1087,11 +1083,12 @@ def vencer_mensualidades():
     y libera sus cupos (RESERVADO -> LIBRE). Devuelve cuántas se vencieron.
     """
     with transaccion() as cur:
-        # Primero libera los espacios reservados de las que van a vencer
+        # Primero libera los cupos (de cada vehículo) de las que van a vencer
         cur.execute(
             """
             UPDATE espacios e
-            JOIN mensualidades m ON m.id_espacio = e.id_espacio
+            JOIN mensualidad_vehiculo mv ON mv.id_espacio = e.id_espacio
+            JOIN mensualidades m          ON m.id_mensualidad = mv.id_mensualidad
             SET e.estado = 'LIBRE'
             WHERE m.estado = 'ACTIVA' AND m.fecha_fin < CURDATE() AND e.estado = 'RESERVADO'
             """

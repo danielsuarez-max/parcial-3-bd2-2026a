@@ -1,62 +1,62 @@
 <h2>Mensualidades (RF4)</h2>
 
-<!-- ===== Nueva mensualidad (arriba, para no hacer scroll) ===== -->
+<!-- ===== Nueva mensualidad (arriba) ===== -->
 <h3>Nueva mensualidad</h3>
 <form class="formulario" (ngSubmit)="crear()">
-  <fieldset>
-    <legend>Cliente</legend>
-    <label for="doc">Documento</label>
-    <input id="doc" type="text" [(ngModel)]="documento" name="doc" autocomplete="off" />
-    <label for="nom">Nombre completo</label>
-    <input id="nom" type="text" [(ngModel)]="nombre" name="nom" autocomplete="off" />
-    <label for="tel">Teléfono (opcional)</label>
-    <input id="tel" type="text" [(ngModel)]="telefono" name="tel" autocomplete="off" />
-    <label for="mail">Email (opcional)</label>
-    <input id="mail" type="email" [(ngModel)]="email" name="mail" autocomplete="off" />
-  </fieldset>
+  <!-- Fila superior: Cliente + Contrato -->
+  <div class="cols">
+    <fieldset>
+      <legend>Cliente</legend>
+      <label for="doc">Documento</label>
+      <input id="doc" type="text" [(ngModel)]="documento" name="doc" autocomplete="off" />
+      <label for="nom">Nombre completo</label>
+      <input id="nom" type="text" [(ngModel)]="nombre" name="nom" autocomplete="off" />
+      <label for="tel">Teléfono (opcional)</label>
+      <input id="tel" type="text" [(ngModel)]="telefono" name="tel" autocomplete="off" />
+      <label for="mail">Email (opcional)</label>
+      <input id="mail" type="email" [(ngModel)]="email" name="mail" autocomplete="off" />
+    </fieldset>
 
-  <fieldset>
-    <legend>Vehículos cubiertos</legend>
+    <fieldset>
+      <legend>Contrato</legend>
+      <label for="ini">Fecha inicio</label>
+      <input id="ini" type="date" [(ngModel)]="fechaInicio" name="ini" />
+      <p class="calculado">Vence: <strong>{{ fechaFinEstimada() }}</strong></p>
+      <p class="calculado">Monto a pagar: <strong>${{ fmt(montoEstimado()) }}</strong></p>
+    </fieldset>
+  </div>
+
+  <!-- Vehículos a todo el ancho: cada uno con su cupo -->
+  <fieldset class="ancho">
+    <legend>Vehículos cubiertos (cada uno con su cupo)</legend>
     @for (v of vehiculos(); track $index) {
       <div class="fila-vehiculo">
         <input type="text" placeholder="Placa" [(ngModel)]="v.placa"
                name="placa{{ $index }}" autocomplete="off" />
-        <select [(ngModel)]="v.id_tipo" name="tipo{{ $index }}" (ngModelChange)="onVehTipoChange()">
+        <select [(ngModel)]="v.id_tipo" name="tipo{{ $index }}" (ngModelChange)="onTipoChange(v)">
           <option [ngValue]="null" disabled>— Tipo —</option>
           @for (t of tipos(); track t.id_tipo) {
             <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
           }
         </select>
+        @if (v.id_tipo === null) {
+          <span class="hint-cupo">Elige el tipo →</span>
+        } @else if (opcionesEspacio(v, vehiculos()).length === 0) {
+          <span class="hint-cupo">Sin cupos libres para ese tipo</span>
+        } @else {
+          <select [(ngModel)]="v.id_espacio" name="esp{{ $index }}">
+            <option [ngValue]="null" disabled>— Cupo —</option>
+            @for (e of opcionesEspacio(v, vehiculos()); track e.id_espacio) {
+              <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+            }
+          </select>
+        }
         @if (vehiculos().length > 1) {
           <button type="button" class="btn-quitar" (click)="quitarVehiculo($index)">✕</button>
         }
       </div>
     }
     <button type="button" class="btn-sec" (click)="agregarVehiculo()">+ Agregar vehículo</button>
-
-    <!-- El cupo depende del tipo de vehículo, por eso va aquí -->
-    <label for="cupo">Cupo (según el tipo)</label>
-    @if (!hayTipoSeleccionado()) {
-      <p class="aviso">Elige el tipo de vehículo para ver los cupos disponibles.</p>
-    } @else if (espaciosLibres().length === 0) {
-      <p class="aviso">No hay cupo compatible con esa combinación de vehículos.</p>
-    } @else {
-      <select id="cupo" [(ngModel)]="idEspacio" name="cupo">
-        <option [ngValue]="null" disabled>— Elige un cupo —</option>
-        @for (e of espaciosLibres(); track e.id_espacio) {
-          <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
-        }
-      </select>
-    }
-  </fieldset>
-
-  <fieldset>
-    <legend>Contrato</legend>
-    <label for="ini">Fecha inicio</label>
-    <input id="ini" type="date" [(ngModel)]="fechaInicio" name="ini" />
-
-    <p class="calculado">Vence: <strong>{{ fechaFinEstimada() }}</strong></p>
-    <p class="calculado">Monto a pagar: <strong>${{ fmt(montoEstimado()) }}</strong></p>
   </fieldset>
 
   <div class="acciones">
@@ -84,19 +84,22 @@
   <table>
     <thead>
       <tr>
-        <th>Cliente</th><th>Cupo</th><th>Desde</th><th>Hasta</th>
-        <th>Monto</th><th>Placas</th><th>Estado</th><th>Acción</th>
+        <th>Cliente</th><th>Desde</th><th>Hasta</th>
+        <th>Monto</th><th>Vehículos (cupo)</th><th>Estado</th><th>Acción</th>
       </tr>
     </thead>
     <tbody>
       @for (m of mensualidades(); track m.id_mensualidad) {
         <tr>
           <td>{{ m.cliente }}</td>
-          <td>N° {{ m.numero_espacio }}</td>
           <td>{{ m.fecha_inicio }}</td>
           <td>{{ m.fecha_fin }}</td>
           <td>${{ fmt(m.monto_pagado) }}</td>
-          <td>{{ m.placas.join(', ') }}</td>
+          <td>
+            @for (v of m.vehiculos; track v.placa) {
+              <span class="chip-veh">{{ v.placa }} (N°{{ v.numero_espacio }})</span>
+            }
+          </td>
           <td>
             <span class="badge"
                   [class.activa]="m.estado === 'ACTIVA'"
@@ -122,8 +125,8 @@
   <div class="modal-overlay" (click)="cerrarCancelar()">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <h3>Cancelar mensualidad</h3>
-      <p>¿Cancelar la mensualidad de <strong>{{ m.cliente }}</strong>
-         (cupo N° {{ m.numero_espacio }})? Se liberará el cupo y <strong>no se puede deshacer</strong>.</p>
+      <p>¿Cancelar la mensualidad de <strong>{{ m.cliente }}</strong>?
+         Se liberarán sus cupos y <strong>no se puede deshacer</strong>.</p>
       <div class="modal-acciones">
         <button class="btn-sec" (click)="cerrarCancelar()">Volver</button>
         <button class="btn-cancelar" (click)="confirmarCancelacion()"
@@ -138,22 +141,34 @@
 <!-- ===== Modal de renovación ===== -->
 @if (renovando(); as m) {
   <div class="modal-overlay" (click)="cerrarRenovar()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-card ancho-modal" (click)="$event.stopPropagation()">
       <h3>Renovar mensualidad (nuevo período)</h3>
-      <p>Cliente: <strong>{{ m.cliente }}</strong> · Cupo: <strong>N° {{ m.numero_espacio }}</strong></p>
+      <p>Cliente: <strong>{{ m.cliente }}</strong></p>
       <p class="calculado">Inicia hoy: <strong>{{ fechaHoy() }}</strong> · Vence: <strong>{{ vencimientoRenovacion() }}</strong></p>
 
-      <label>Vehículos cubiertos</label>
+      <label>Vehículos cubiertos (cada uno con su cupo)</label>
       @for (v of renovVehiculos(); track $index) {
         <div class="fila-vehiculo">
           <input type="text" placeholder="Placa" [(ngModel)]="v.placa"
                  name="rplaca{{ $index }}" autocomplete="off" />
-          <select [(ngModel)]="v.id_tipo" name="rtipo{{ $index }}">
+          <select [(ngModel)]="v.id_tipo" name="rtipo{{ $index }}" (ngModelChange)="onTipoChange(v)">
             <option [ngValue]="null" disabled>— Tipo —</option>
             @for (t of tipos(); track t.id_tipo) {
               <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
             }
           </select>
+          @if (v.id_tipo === null) {
+            <span class="hint-cupo">Elige el tipo →</span>
+          } @else if (opcionesEspacio(v, renovVehiculos()).length === 0) {
+            <span class="hint-cupo">Sin cupos libres</span>
+          } @else {
+            <select [(ngModel)]="v.id_espacio" name="resp{{ $index }}">
+              <option [ngValue]="null" disabled>— Cupo —</option>
+              @for (e of opcionesEspacio(v, renovVehiculos()); track e.id_espacio) {
+                <option [ngValue]="e.id_espacio">N° {{ e.numero }}</option>
+              }
+            </select>
+          }
           @if (renovVehiculos().length > 1) {
             <button type="button" class="btn-quitar" (click)="quitarVehRenov($index)">✕</button>
           }
