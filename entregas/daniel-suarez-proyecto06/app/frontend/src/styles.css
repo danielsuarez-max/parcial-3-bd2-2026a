@@ -2,9 +2,27 @@
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  /* "Lo demás": Copperplate, con alternativa web Cinzel si no está instalada. */
+  font-family: 'Copperplate', 'Copperplate Gothic Light', 'Cinzel', serif;
   color: #1a1a1a;
   background: #fafafa;
+}
+
+/* Encabezados y barra de menú: Open Sans. */
+h1, h2, h3, h4, h5, h6,
+.menu {
+  font-family: 'Open Sans', system-ui, sans-serif;
+}
+
+/* Los controles de formulario no heredan la fuente: forzamos que tomen el cuerpo. */
+button, input, textarea {
+  font-family: inherit;
+}
+
+/* Excepciones (por ahora): contenido de tablas y dropdowns en fuente neutra. */
+th, td,
+select, .combo-trigger, .combo-item {
+  font-family: system-ui, sans-serif;
 }
 
 h1 { margin-bottom: 0.2rem; }
