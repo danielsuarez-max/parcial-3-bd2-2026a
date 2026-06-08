@@ -1,8 +1,9 @@
 import { Component, signal, inject, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, EntradaOut, MensualidadActiva
+  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, MensualidadActiva
 } from '../../services/api';
+import { Toast } from '../../services/toast';
 
 @Component({
   selector: 'app-registrar-entrada',
@@ -12,6 +13,7 @@ import {
 })
 export class RegistrarEntradaComponent {
   private api = inject(Api);
+  private toast = inject(Toast);
 
   // --- Datos del formulario (enlazados con [(ngModel)]) ---
   placa = '';
@@ -32,22 +34,18 @@ export class RegistrarEntradaComponent {
 
   // --- Estado del envío ---
   enviando = signal(false);
-  resultado = signal<EntradaOut | null>(null);
-  error = signal<string | null>(null);
 
   constructor() {
     // Llenamos el dropdown de tipos al abrir la vista.
     this.api.getTipos().subscribe({
       next: (resp) => this.tipos.set(resp.datos),
-      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los tipos.'); }
+      error: (err) => { console.error(err); this.toast.error('No se pudieron cargar los tipos.'); }
     });
   }
 
   /** Al salir del campo placa: normaliza a mayúsculas y consulta si es mensual. */
   onPlacaBlur(): void {
     this.placa = this.placa.trim().toUpperCase();
-    this.resultado.set(null);
-    this.error.set(null);
 
     if (!this.placa) {
       this.esMensual.set(null);
@@ -68,7 +66,7 @@ export class RegistrarEntradaComponent {
           this.recargarEspacios();
         }
       },
-      error: (err) => { console.error(err); this.error.set('No se pudo verificar la mensualidad.'); }
+      error: (err) => { console.error(err); this.toast.error('No se pudo verificar la mensualidad.'); }
     });
   }
 
@@ -85,7 +83,7 @@ export class RegistrarEntradaComponent {
     if (this.idTipo === null) { this.espacios.set([]); return; }
     this.api.getEspaciosLibres(this.idTipo).subscribe({
       next: (resp) => this.espacios.set(resp.datos),
-      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los espacios.'); }
+      error: (err) => { console.error(err); this.toast.error('No se pudieron cargar los espacios.'); }
     });
   }
 
@@ -126,11 +124,8 @@ export class RegistrarEntradaComponent {
 
   /** Envía el POST /ingresos. */
   registrar(): void {
-    this.resultado.set(null);
-    this.error.set(null);
-
-    if (!this.placa)        { this.error.set('Escribe la placa.'); return; }
-    if (this.idTipo === null) { this.error.set('Elige el tipo de vehículo.'); return; }
+    if (!this.placa)        { this.toast.error('Escribe la placa.'); return; }
+    if (this.idTipo === null) { this.toast.error('Elige el tipo de vehículo.'); return; }
 
     // Si es mensual, mandamos el cupo reservado (el backend lo usa igual).
     // Si es ocasional, mandamos el espacio seleccionado.
@@ -138,7 +133,7 @@ export class RegistrarEntradaComponent {
     if (this.esMensual()) {
       idEspacio = this.mensual()!.id_espacio;
     } else {
-      if (this.idEspacio === null) { this.error.set('Elige un espacio.'); return; }
+      if (this.idEspacio === null) { this.toast.error('Elige un espacio.'); return; }
       idEspacio = this.idEspacio;
     }
 
@@ -153,12 +148,12 @@ export class RegistrarEntradaComponent {
     this.enviando.set(true);
     this.api.postIngreso(entrada).subscribe({
       next: (resp) => {
-        this.resultado.set(resp);
+        this.toast.exito(`${resp.mensaje}: placa ${resp.placa} (${resp.modalidad}) en el espacio N° ${resp.numero_espacio}.`);
         this.enviando.set(false);
         this.limpiar();
       },
       error: (err) => {
-        this.error.set(this.extraerError(err));
+        this.toast.error(this.extraerError(err));
         this.enviando.set(false);
       }
     });

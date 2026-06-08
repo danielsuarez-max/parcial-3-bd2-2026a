@@ -1,0 +1,45 @@
+/* Contenedor fijo arriba a la derecha; no interfiere con clics fuera de los toasts. */
+.toasts {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;        /* el toast sí recibe clics (botón cerrar) */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 240px;
+  max-width: 360px;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  animation: toastEntra 0.25s ease-out;
+}
+.toast.exito { background: #0a7d28; }
+.toast.error { background: #b00020; }
+
+.toast .texto { flex: 1; font-size: 0.92rem; }
+
+.toast .cerrar {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+.toast .cerrar:hover { opacity: 1; }
+
+@keyframes toastEntra {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: none; }
+}

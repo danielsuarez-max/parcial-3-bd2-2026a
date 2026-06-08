@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, EspacioLibre, Mensualidad, MensualidadIn, VehiculoMensualIn
 } from '../../services/api';
+import { Toast } from '../../services/toast';
 
 // Una fila editable de vehículo: placa + tipo + su cupo (id_espacio).
 type FilaVehiculo = { placa: string; id_tipo: number | null; id_espacio: number | null };
@@ -15,6 +16,7 @@ type FilaVehiculo = { placa: string; id_tipo: number | null; id_espacio: number 
 })
 export class MensualidadesComponent {
   private api = inject(Api);
+  private toast = inject(Toast);
 
   // --- Lista ---
   mensualidades = signal<Mensualidad[]>([]);
@@ -35,8 +37,6 @@ export class MensualidadesComponent {
   vehiculos = signal<FilaVehiculo[]>([{ placa: '', id_tipo: null, id_espacio: null }]);
 
   enviando = signal(false);
-  exito = signal<string | null>(null);
-  error = signal<string | null>(null);
 
   // --- Modal de cancelación ---
   cancelando = signal<Mensualidad | null>(null);
@@ -67,7 +67,7 @@ export class MensualidadesComponent {
     this.cargando.set(true);
     this.api.getMensualidades().subscribe({
       next: (resp) => { this.mensualidades.set(resp.datos); this.cargando.set(false); },
-      error: (err) => { console.error(err); this.error.set('No se pudieron cargar las mensualidades.'); this.cargando.set(false); }
+      error: (err) => { console.error(err); this.toast.error('No se pudieron cargar las mensualidades.'); this.cargando.set(false); }
     });
   }
 
@@ -88,7 +88,7 @@ export class MensualidadesComponent {
           return copia;
         });
       },
-      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los cupos.'); }
+      error: (err) => { console.error(err); this.toast.error('No se pudieron cargar los cupos.'); }
     });
   }
 
@@ -163,13 +163,10 @@ export class MensualidadesComponent {
 
   // ===== Crear =====
   crear(): void {
-    this.exito.set(null);
-    this.error.set(null);
-
     if (!this.documento.trim() || !this.nombre.trim()) {
-      this.error.set('Documento y nombre del cliente son obligatorios.'); return;
+      this.toast.error('Documento y nombre del cliente son obligatorios.'); return;
     }
-    if (!this.fechaInicio) { this.error.set('Indica la fecha de inicio.'); return; }
+    if (!this.fechaInicio) { this.toast.error('Indica la fecha de inicio.'); return; }
 
     const vehs = this.normalizar(this.vehiculos());
     if (vehs === null) return;
@@ -188,28 +185,28 @@ export class MensualidadesComponent {
     this.enviando.set(true);
     this.api.postMensualidad(m).subscribe({
       next: (resp) => {
-        this.exito.set(`Mensualidad creada (cupos N° ${resp.numeros_espacio.join(', ')}, vence ${resp.fecha_fin}, monto $${this.fmt(resp.monto)}).`);
+        this.toast.exito(`Mensualidad creada (cupos N° ${resp.numeros_espacio.join(', ')}, vence ${resp.fecha_fin}, monto $${this.fmt(resp.monto)}).`);
         this.enviando.set(false);
         this.limpiar();
         this.refrescarCupos();
         this.cargar();
       },
-      error: (err) => { console.error(err); this.error.set(this.extraerError(err)); this.enviando.set(false); }
+      error: (err) => { console.error(err); this.toast.error(this.extraerError(err)); this.enviando.set(false); }
     });
   }
 
   /** Valida y normaliza las filas a la forma del backend. Devuelve null si hay error. */
   private normalizar(lista: FilaVehiculo[]): VehiculoMensualIn[] | null {
-    if (lista.length === 0) { this.error.set('Agrega al menos un vehículo.'); return null; }
+    if (lista.length === 0) { this.toast.error('Agrega al menos un vehículo.'); return null; }
     const vehs = lista.map((v) => ({
       placa: v.placa.trim().toUpperCase(), id_tipo: v.id_tipo, id_espacio: v.id_espacio,
     }));
     if (vehs.some((v) => !v.placa || v.id_tipo === null || v.id_espacio === null)) {
-      this.error.set('Cada vehículo necesita placa, tipo y espacio.'); return null;
+      this.toast.error('Cada vehículo necesita placa, tipo y espacio.'); return null;
     }
     const espacios = vehs.map((v) => v.id_espacio);
     if (new Set(espacios).size !== espacios.length) {
-      this.error.set('Dos vehículos no pueden usar el mismo espacio.'); return null;
+      this.toast.error('Dos vehículos no pueden usar el mismo espacio.'); return null;
     }
     return vehs as VehiculoMensualIn[];
   }
@@ -231,11 +228,10 @@ export class MensualidadesComponent {
   confirmarCancelacion(): void {
     const m = this.cancelando();
     if (!m) return;
-    this.error.set(null);
     this.cancelandoId.set(m.id_mensualidad);
     this.api.cancelarMensualidad(m.id_mensualidad).subscribe({
       next: () => {
-        this.exito.set(`Mensualidad de ${m.cliente} cancelada; cupos liberados.`);
+        this.toast.exito(`Mensualidad de ${m.cliente} cancelada; cupos liberados.`);
         this.cancelandoId.set(null);
         this.cancelando.set(null);
         this.refrescarCupos();
@@ -243,7 +239,7 @@ export class MensualidadesComponent {
       },
       error: (err) => {
         console.error(err);
-        this.error.set(this.extraerError(err));
+        this.toast.error(this.extraerError(err));
         this.cancelandoId.set(null);
         this.cancelando.set(null);
       }
@@ -252,20 +248,18 @@ export class MensualidadesComponent {
 
   // ===== Vencer expiradas =====
   vencer(): void {
-    this.exito.set(null); this.error.set(null);
     this.api.vencerExpiradas().subscribe({
       next: (resp) => {
-        this.exito.set(`Barrido completado: ${resp.mensualidades_vencidas} mensualidad(es) vencida(s).`);
+        this.toast.exito(`Barrido completado: ${resp.mensualidades_vencidas} mensualidad(es) vencida(s).`);
         this.refrescarCupos();
         this.cargar();
       },
-      error: (err) => { console.error(err); this.error.set('No se pudo ejecutar el barrido.'); }
+      error: (err) => { console.error(err); this.toast.error('No se pudo ejecutar el barrido.'); }
     });
   }
 
   // ===== Renovación =====
   pedirRenovar(m: Mensualidad): void {
-    this.error.set(null);
     this.renovando.set(m);
     this.renovVehiculos.set([]);
     // Precargamos placa+tipo de la vencida; el espacio se elige de nuevo (los anteriores pudieron ocuparse).
@@ -276,7 +270,7 @@ export class MensualidadesComponent {
         );
         for (const v of resp.datos) this.cargarLibresDeTipo(v.id_tipo);
       },
-      error: (err) => { console.error(err); this.error.set('No se pudieron cargar los vehículos.'); }
+      error: (err) => { console.error(err); this.toast.error('No se pudieron cargar los vehículos.'); }
     });
   }
   cerrarRenovar(): void { this.renovando.set(null); }
@@ -290,14 +284,13 @@ export class MensualidadesComponent {
   confirmarRenovacion(): void {
     const m = this.renovando();
     if (!m) return;
-    this.error.set(null);
     const vehs = this.normalizar(this.renovVehiculos());
     if (vehs === null) return;
 
     this.renovandoId.set(m.id_mensualidad);
     this.api.renovarMensualidad(m.id_mensualidad, vehs).subscribe({
       next: (resp) => {
-        this.exito.set(`Mensualidad de ${m.cliente} renovada: nuevo período hasta ${resp.fecha_fin} (monto $${this.fmt(resp.monto)}).`);
+        this.toast.exito(`Mensualidad de ${m.cliente} renovada: nuevo período hasta ${resp.fecha_fin} (monto $${this.fmt(resp.monto)}).`);
         this.renovandoId.set(null);
         this.renovando.set(null);
         this.refrescarCupos();
@@ -305,7 +298,7 @@ export class MensualidadesComponent {
       },
       error: (err) => {
         console.error(err);
-        this.error.set(this.extraerError(err));
+        this.toast.error(this.extraerError(err));
         this.renovandoId.set(null);
         this.renovando.set(null);
       }

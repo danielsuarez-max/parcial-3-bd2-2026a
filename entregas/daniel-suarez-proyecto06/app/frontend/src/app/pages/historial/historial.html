@@ -43,7 +43,7 @@
     </thead>
     <tbody>
       @for (i of ingresos(); track i.id_ingreso) {
-        <tr>
+        <tr [style.animation-delay.ms]="$index * 35">
           <td>{{ i.placa }}</td>
           <td>{{ i.tipo_vehiculo }}</td>
           <td>{{ i.numero_espacio }}</td>

@@ -72,13 +72,3 @@
   </div>
 </form>
 
-<!-- Resultado -->
-@if (resultado(); as r) {
-  <p class="exito">
-    {{ r.mensaje }}: placa <strong>{{ r.placa }}</strong> ({{ r.modalidad }})
-    en el espacio <strong>N° {{ r.numero_espacio }}</strong>.
-  </p>
-}
-@if (error()) {
-  <p class="error">{{ error() }}</p>
-}
