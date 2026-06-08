@@ -385,7 +385,7 @@ FORMATOS_PLACA = {
     "Camioneta": (r"^[A-Z]{3}[0-9]{3}$", "3 letras y 3 números", "ABC123"),
     "Camión":    (r"^[A-Z]{3}[0-9]{3}$", "3 letras y 3 números", "ABC123"),
     "Moto":      (r"^[A-Z]{3}[0-9]{2}[A-Z]$", "3 letras, 2 números y 1 letra", "ABC12D"),
-    "Bicicleta": (r"^BIC[0-9]{3}$", "código interno BIC + 3 números (la bici no lleva placa)", "BIC001"),
+    "Bicicleta": (r"^BIC[0-9]{2}$", "código interno BIC + 2 números (la bici no lleva placa)", "BIC01"),
 }
 
 
