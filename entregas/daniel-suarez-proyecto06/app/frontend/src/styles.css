@@ -28,6 +28,9 @@ h3, h4, h5, h6 {
   font-style: italic;
 }
 
+/* El nivel h4 resalta más: Bodoni itálica en negrita. */
+h4 { font-weight: 700; }
+
 /* Los controles de formulario no heredan la fuente: forzamos que tomen el cuerpo. */
 button, input, textarea {
   font-family: inherit;
