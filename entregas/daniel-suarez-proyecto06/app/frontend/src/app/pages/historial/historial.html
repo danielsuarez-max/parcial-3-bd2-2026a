@@ -54,7 +54,7 @@
           </td>
           <td>{{ i.modalidad }}</td>
           <td>{{ i.minutos }}</td>
-          <td>{{ i.monto_cobrado != null ? ('$' + i.monto_cobrado) : '—' }}</td>
+          <td>{{ i.monto_cobrado != null ? ('$' + (i.monto_cobrado | number:'1.0-0')) : '—' }}</td>
         </tr>
       }
     </tbody>

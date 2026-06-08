@@ -1,4 +1,5 @@
 import { Component, signal, inject } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, Tarifa, TarifaHistorico, TarifaIn, TarifaMensual
@@ -6,7 +7,7 @@ import {
 
 @Component({
   selector: 'app-tarifas',
-  imports: [FormsModule],
+  imports: [DecimalPipe, FormsModule],
   templateUrl: './tarifas.html',
   styleUrl: './tarifas.css'
 })

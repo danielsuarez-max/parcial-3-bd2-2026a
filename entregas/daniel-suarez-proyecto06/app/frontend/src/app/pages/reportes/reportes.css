@@ -1,16 +1,24 @@
 h3 { margin-top: 1.2rem; }
 
-/* Las dos tablas (día | mes) lado a lado, usando todo el ancho que necesiten.
-   Márgenes negativos simétricos = rompe el max-width:1000px del contenedor y
-   queda centrado (mismo margen a izquierda y derecha). */
+/* Bloque (botón + tablas) tan ancho como necesiten las tablas y centrado en la ventana.
+   width:max-content ignora el max-width:1000px del contenedor; left:50% + translateX(-50%)
+   lo centra respecto a la ventana. Como el botón vive dentro del bloque, queda alineado
+   con el borde izquierdo de la primera tabla. */
+.reportes-wrap {
+  width: max-content;
+  max-width: calc(100vw - 3rem);   /* nunca más ancho que la ventana */
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-inline: auto;
+}
+.reportes-wrap .btn { margin-bottom: 1rem; }   /* el botón queda encima de las tablas */
+
+/* Las dos tablas (día | mes) lado a lado; en pantallas angostas se apilan. */
 .reportes-cols {
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  padding: 0 1.5rem;        /* aire mínimo contra los bordes de la ventana */
   display: flex;
   gap: 2rem;
-  flex-wrap: wrap;          /* en pantallas angostas se apilan solas */
-  justify-content: center;  /* centra las dos tablas como grupo */
+  flex-wrap: wrap;
   align-items: flex-start;
 }
 .reporte-col {

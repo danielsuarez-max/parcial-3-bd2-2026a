@@ -1,11 +1,11 @@
 import { Component, signal, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api, IngresoHistorial } from '../../services/api';
 
 @Component({
   selector: 'app-historial',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, DecimalPipe, FormsModule],
   templateUrl: './historial.html',
   styleUrl: './historial.css'
 })

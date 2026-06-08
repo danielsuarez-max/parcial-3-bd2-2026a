@@ -8,7 +8,7 @@
     ✅ Salida de <strong>{{ s.placa }}</strong> ({{ s.modalidad }}) ·
     {{ s.minutos_dentro }} min
     @if (s.modalidad === 'OCASIONAL') {
-      · {{ s.horas_cobradas }} h cobrada(s) · <strong>Cobro: ${{ s.monto_cobrado }}</strong>
+      · {{ s.horas_cobradas }} h cobrada(s) · <strong>Cobro: ${{ s.monto_cobrado | number:'1.0-0' }}</strong>
     } @else {
       · {{ s.nota }}
     }

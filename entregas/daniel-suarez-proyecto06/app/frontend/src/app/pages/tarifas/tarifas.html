@@ -19,7 +19,7 @@
             @for (t of tarifas(); track t.id_tarifa) {
               <tr>
                 <td>{{ t.tipo }}</td>
-                <td>${{ t.valor_hora }}</td>
+                <td>${{ t.valor_hora | number:'1.0-0' }}</td>
                 <td>{{ t.vigente_desde }}</td>
               </tr>
             }
@@ -41,7 +41,7 @@
             @for (t of tarifasMensuales(); track t.id_tipo) {
               <tr>
                 <td>{{ t.tipo }}</td>
-                <td>${{ t.valor_mes }}</td>
+                <td>${{ t.valor_mes | number:'1.0-0' }}</td>
               </tr>
             }
           </tbody>
@@ -127,7 +127,7 @@
       <tbody>
         @for (h of historico(); track h.id_tarifa) {
           <tr>
-            <td>${{ h.valor_hora }}</td>
+            <td>${{ h.valor_hora | number:'1.0-0' }}</td>
             <td>{{ h.vigente_desde }}</td>
             <td>
               <span class="badge" [class.activa]="h.activa === 1">

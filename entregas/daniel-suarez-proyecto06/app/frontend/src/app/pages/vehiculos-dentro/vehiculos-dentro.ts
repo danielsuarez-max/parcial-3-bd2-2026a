@@ -1,10 +1,10 @@
 import { Component, signal, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Api, VehiculoDentro, SalidaOut } from '../../services/api';
 
 @Component({
   selector: 'app-vehiculos-dentro',
-  imports: [DatePipe],
+  imports: [DatePipe, DecimalPipe],
   templateUrl: './vehiculos-dentro.html',
   styleUrl: './vehiculos-dentro.css'
 })
