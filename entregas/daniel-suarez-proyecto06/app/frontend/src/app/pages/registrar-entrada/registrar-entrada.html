@@ -9,7 +9,7 @@
   <!-- Banner si la placa es mensual -->
   @if (esMensual() && mensual(); as m) {
     <p class="banner-mensual">
-      🪪 Vehículo <strong>MENSUAL</strong> de {{ m.nombre_completo }} →
+      Vehículo <strong>MENSUAL</strong> de {{ m.nombre_completo }}:
       entrará a su cupo reservado <strong>N° {{ m.numero_espacio }}</strong>.
     </p>
   }
@@ -75,10 +75,10 @@
 <!-- Resultado -->
 @if (resultado(); as r) {
   <p class="exito">
-    ✅ {{ r.mensaje }}: placa <strong>{{ r.placa }}</strong> ({{ r.modalidad }})
+    {{ r.mensaje }}: placa <strong>{{ r.placa }}</strong> ({{ r.modalidad }})
     en el espacio <strong>N° {{ r.numero_espacio }}</strong>.
   </p>
 }
 @if (error()) {
-  <p class="error">⚠️ {{ error() }}</p>
+  <p class="error">{{ error() }}</p>
 }

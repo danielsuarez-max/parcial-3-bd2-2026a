@@ -1,11 +1,18 @@
 <h2>Vehículos actualmente dentro (RF7)</h2>
 
-<button class="btn" (click)="cargar()" [disabled]="cargando()">🔄 Actualizar</button>
+<button class="btn" (click)="cargar()" [disabled]="cargando()">
+  <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+    <polyline points="21 3 21 9 15 9"/>
+  </svg>
+  Actualizar
+</button>
 
 <!-- Comprobante de la última salida registrada -->
 @if (ultimaSalida(); as s) {
   <div class="comprobante">
-    <h3>✅ Salida registrada</h3>
+    <h3>Salida registrada</h3>
     <table>
       <thead>
         <tr>
@@ -38,7 +45,7 @@
 @if (cargando()) {
   <p class="aviso">Cargando…</p>
 } @else if (error()) {
-  <p class="error">⚠️ {{ error() }}</p>
+  <p class="error">{{ error() }}</p>
 } @else if (vehiculos().length === 0) {
   <p class="aviso">No hay vehículos dentro del parqueadero en este momento.</p>
 } @else {

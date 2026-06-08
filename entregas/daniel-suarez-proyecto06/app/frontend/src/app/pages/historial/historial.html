@@ -22,7 +22,7 @@
 @if (cargando()) {
   <p class="aviso">Cargando…</p>
 } @else if (error()) {
-  <p class="error">⚠️ {{ error() }}</p>
+  <p class="error">{{ error() }}</p>
 } @else if (ingresos().length === 0) {
   <p class="aviso">No hay ingresos para mostrar.</p>
 } @else {
