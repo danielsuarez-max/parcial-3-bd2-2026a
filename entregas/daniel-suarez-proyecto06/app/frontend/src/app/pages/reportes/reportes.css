@@ -1,4 +1,17 @@
-h3 { margin-top: 1.8rem; }
+h3 { margin-top: 1.2rem; }
+
+/* Las dos tablas (día | mes) lado a lado; en pantallas angostas se apilan. */
+.reportes-cols {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.reporte-col {
+  flex: 1 1 420px;
+  min-width: 0;          /* permite que la columna se encoja por debajo del ancho de la tabla */
+  overflow-x: auto;      /* si la tabla no cabe, scroll horizontal solo dentro de su columna */
+}
 
 /* Fila de totales al pie de cada tabla */
 tfoot .totales td {

@@ -7,8 +7,10 @@
 } @else if (error()) {
   <p class="error">⚠️ {{ error() }}</p>
 } @else {
+  <div class="reportes-cols">
 
   <!-- ===== Por día ===== -->
+  <div class="reporte-col">
   <h3>Por día</h3>
   @if (reporteDia().length === 0) {
     <p class="aviso">No hay ingresos cerrados registrados.</p>
@@ -45,8 +47,10 @@
       </tfoot>
     </table>
   }
+  </div>
 
   <!-- ===== Por mes ===== -->
+  <div class="reporte-col">
   <h3>Por mes</h3>
   @if (reporteMes().length === 0) {
     <p class="aviso">No hay datos mensuales.</p>
@@ -86,4 +90,7 @@
       </tfoot>
     </table>
   }
+  </div>
+
+  </div>
 }
