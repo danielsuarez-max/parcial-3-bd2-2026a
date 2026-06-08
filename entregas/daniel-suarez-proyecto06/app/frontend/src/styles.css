@@ -27,6 +27,7 @@ th, td {
   border: 1px solid #ddd;
   padding: 0.5rem 0.75rem;
   text-align: left;
+  white-space: nowrap;   /* el contenido no se parte; la columna se ensancha hasta caber */
 }
 thead th { background: #2c3e50; color: #fff; }
 tbody tr:nth-child(even) { background: #f6f8fa; }
