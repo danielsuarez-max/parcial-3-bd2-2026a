@@ -1,16 +1,20 @@
 h3 { margin-top: 1.2rem; }
 
-/* Las dos tablas (día | mes) lado a lado; en pantallas angostas se apilan. */
+/* Las dos tablas (día | mes) lado a lado, usando todo el ancho que necesiten.
+   Márgenes negativos simétricos = rompe el max-width:1000px del contenedor y
+   queda centrado (mismo margen a izquierda y derecha). */
 .reportes-cols {
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 0 1.5rem;        /* aire mínimo contra los bordes de la ventana */
   display: flex;
   gap: 2rem;
-  flex-wrap: wrap;
+  flex-wrap: wrap;          /* en pantallas angostas se apilan solas */
+  justify-content: center;  /* centra las dos tablas como grupo */
   align-items: flex-start;
 }
 .reporte-col {
-  flex: 1 1 420px;
-  min-width: 0;          /* permite que la columna se encoja por debajo del ancho de la tabla */
-  overflow-x: auto;      /* si la tabla no cabe, scroll horizontal solo dentro de su columna */
+  flex: 0 1 auto;           /* cada tabla toma su ancho natural, sin comprimir ni cortar */
 }
 
 /* Fila de totales al pie de cada tabla */
