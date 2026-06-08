@@ -195,7 +195,7 @@ def tarifas():
         FROM tarifas t
         JOIN tipo_vehiculo tv ON tv.id_tipo = t.id_tipo
         WHERE t.activa = 1
-        ORDER BY tv.nombre
+        ORDER BY t.id_tipo
     """
     return con_total(run_query(sql))
 
