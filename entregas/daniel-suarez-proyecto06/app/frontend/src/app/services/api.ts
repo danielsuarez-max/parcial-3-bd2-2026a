@@ -136,6 +136,7 @@ export interface VehiculoConCupo {
 /** Una fila de la lista de mensualidades (GET /mensualidades). */
 export interface Mensualidad {
   id_mensualidad: number;
+  id_cliente: number;
   cliente: string;
   estado: 'ACTIVA' | 'VENCIDA' | 'CANCELADA';
   fecha_inicio: string;

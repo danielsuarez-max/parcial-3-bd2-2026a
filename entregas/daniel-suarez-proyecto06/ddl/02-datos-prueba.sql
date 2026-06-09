@@ -173,29 +173,30 @@ INSERT INTO vehiculos (placa, id_tipo, color, marca) VALUES
 
 -- =========================================================================
 -- 6) mensualidades — 12 activas + 3 vencidas
---    Las activas cubren 2026-05-30 (fecha de hoy)
+--    Las ACTIVAS usan fechas RELATIVAS a CURDATE() para que siempre cubran "hoy",
+--    sin importar en qué fecha se ejecute el script (así no se vencen solas).
 -- =========================================================================
 -- El espacio ya NO va en mensualidades: cada vehículo tiene su cupo en
 -- mensualidad_vehiculo (ver más abajo). El monto es la suma del valor mensual
 -- de los vehículos cubiertos (Ana y Valentina cubren carro+moto = 150000+70000).
 INSERT INTO mensualidades (id_cliente, fecha_inicio, fecha_fin, monto_pagado, estado) VALUES
-    -- ACTIVAS (cubren hoy 2026-05-30)
-    ( 1, '2026-05-01', '2026-05-31', 220000.00, 'ACTIVA'),  -- Ana (carro + moto)
-    ( 2, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Carlos
-    ( 3, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- Lucía
-    ( 4, '2026-05-10', '2026-06-09', 180000.00, 'ACTIVA'),  -- Jorge (camioneta)
-    ( 5, '2026-05-01', '2026-05-31', 150000.00, 'ACTIVA'),  -- María
-    ( 6, '2026-05-05', '2026-06-04',  70000.00, 'ACTIVA'),  -- Diego (moto)
-    ( 7, '2026-05-01', '2026-05-31', 220000.00, 'ACTIVA'),  -- Valentina (carro + moto)
-    ( 8, '2026-05-20', '2026-06-19', 150000.00, 'ACTIVA'),  -- Sebastián
-    ( 9, '2026-05-01', '2026-05-31', 180000.00, 'ACTIVA'),  -- Isabella (camioneta)
-    (10, '2026-05-15', '2026-06-14', 150000.00, 'ACTIVA'),  -- Andrés
-    (11, '2026-05-01', '2026-05-31',  70000.00, 'ACTIVA'),  -- Camila (moto)
-    (12, '2026-05-25', '2026-06-24', 150000.00, 'ACTIVA'),  -- Mateo
-    -- VENCIDAS (histórico)
-    ( 1, '2026-04-01', '2026-04-30', 220000.00, 'VENCIDA'),  -- Renovación previa de Ana
-    ( 3, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA'),
-    ( 5, '2026-04-01', '2026-04-30', 150000.00, 'VENCIDA');
+    -- ACTIVAS (todas cubren HOY: inicio antes de hoy, fin después de hoy)
+    ( 1, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY, 220000.00, 'ACTIVA'),  -- Ana (carro + moto)
+    ( 2, CURDATE() - INTERVAL 24 DAY, CURDATE() + INTERVAL  6 DAY, 150000.00, 'ACTIVA'),  -- Carlos
+    ( 3, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY, 150000.00, 'ACTIVA'),  -- Lucía
+    ( 4, CURDATE() - INTERVAL 29 DAY, CURDATE() + INTERVAL  1 DAY, 180000.00, 'ACTIVA'),  -- Jorge (camioneta)
+    ( 5, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY, 150000.00, 'ACTIVA'),  -- María
+    ( 6, CURDATE() - INTERVAL 25 DAY, CURDATE() + INTERVAL  5 DAY,  70000.00, 'ACTIVA'),  -- Diego (moto)
+    ( 7, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY, 220000.00, 'ACTIVA'),  -- Valentina (carro + moto)
+    ( 8, CURDATE() - INTERVAL 19 DAY, CURDATE() + INTERVAL 11 DAY, 150000.00, 'ACTIVA'),  -- Sebastián
+    ( 9, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY, 180000.00, 'ACTIVA'),  -- Isabella (camioneta)
+    (10, CURDATE() - INTERVAL 24 DAY, CURDATE() + INTERVAL  6 DAY, 150000.00, 'ACTIVA'),  -- Andrés
+    (11, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY,  70000.00, 'ACTIVA'),  -- Camila (moto)
+    (12, CURDATE() - INTERVAL 14 DAY, CURDATE() + INTERVAL 16 DAY, 150000.00, 'ACTIVA'),  -- Mateo
+    -- VENCIDAS (histórico: rango totalmente en el pasado)
+    ( 1, CURDATE() - INTERVAL 68 DAY, CURDATE() - INTERVAL 38 DAY, 220000.00, 'VENCIDA'),  -- Renovación previa de Ana
+    ( 3, CURDATE() - INTERVAL 68 DAY, CURDATE() - INTERVAL 38 DAY, 150000.00, 'VENCIDA'),
+    ( 5, CURDATE() - INTERVAL 68 DAY, CURDATE() - INTERVAL 38 DAY, 150000.00, 'VENCIDA');
 -- IDs mensualidad: 1..15
 
 -- =========================================================================

@@ -899,6 +899,7 @@ def listar_mensualidades():
     sql = """
         SELECT
             m.id_mensualidad,
+            m.id_cliente,
             c.nombre_completo                                          AS cliente,
             m.estado,
             m.fecha_inicio,
@@ -909,7 +910,7 @@ def listar_mensualidades():
         JOIN clientes c  ON c.id_cliente = m.id_cliente
         LEFT JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
         LEFT JOIN espacios e ON e.id_espacio = mv.id_espacio
-        GROUP BY m.id_mensualidad, c.nombre_completo, m.estado,
+        GROUP BY m.id_mensualidad, m.id_cliente, c.nombre_completo, m.estado,
                  m.fecha_inicio, m.fecha_fin, m.monto_pagado
         ORDER BY m.fecha_inicio DESC
     """
@@ -974,6 +975,17 @@ def renovar_mensualidad(id_mensualidad: int, datos: RenovacionIn):
                 detail=f"Solo se pueden renovar mensualidades VENCIDAS (esta está {men['estado']}).",
             )
         id_cliente = men["id_cliente"]
+
+        # 1b) El cliente NO puede tener ya una mensualidad ACTIVA (evita duplicar el período)
+        cur.execute(
+            "SELECT id_mensualidad FROM mensualidades WHERE id_cliente = %s AND estado = 'ACTIVA' LIMIT 1",
+            (id_cliente,),
+        )
+        if cur.fetchone():
+            raise HTTPException(
+                status_code=409,
+                detail="Este cliente ya tiene una mensualidad ACTIVA; no se puede renovar una vencida.",
+            )
 
         # 2) Nuevas fechas: inicia hoy, dura 1 mes
         fecha_inicio = date.today()

@@ -9,13 +9,13 @@
 
 .btn-sec {
   background: none;
-  border: 1px solid #2c3e50;
-  color: #2c3e50;
+  border: 1px solid #2563EB;
+  color: #2563EB;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
 }
-.btn-sec:hover { background: #eef3f8; }
+.btn-sec:hover { background: #E8F0FE; }
 
 .badge {
   background: #6c757d;

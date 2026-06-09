@@ -44,7 +44,7 @@
 .libre      .numero { color: #0a7d28; }
 .ocupado    .numero { color: #b00020; }
 .reservado  .numero { color: #b07d0a; }
-.porcentaje .numero { color: #2c3e50; }
+.porcentaje .numero { color: #1E293B; }
 
 /* ===== Mapa del parqueadero ===== */
 h3 { margin-top: 1.8rem; }
@@ -93,7 +93,7 @@ h3 { margin-top: 1.8rem; }
   user-select: none;
   transition: background 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
 }
-.celda:hover { outline: 2px solid #2c3e50; }
+.celda:hover { outline: 2px solid #1E293B; }
 
 /* Colores de estado (cuadros y puntos de la leyenda) */
 .celda.libre,     .punto.libre     { background: #0a7d28; }

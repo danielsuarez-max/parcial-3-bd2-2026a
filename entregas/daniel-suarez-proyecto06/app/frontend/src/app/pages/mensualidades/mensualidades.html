@@ -124,8 +124,10 @@
           <td>
             @if (m.estado === 'ACTIVA') {
               <button class="btn-cancelar" (click)="pedirCancelar(m)">Cancelar</button>
-            } @else if (m.estado === 'VENCIDA') {
+            } @else if (m.estado === 'VENCIDA' && !clienteTieneActiva(m)) {
               <button class="btn-renovar" (click)="pedirRenovar(m)">Renovar</button>
+            } @else if (m.estado === 'VENCIDA') {
+              <span class="hint-cupo">Ya renovada</span>
             } @else { — }
           </td>
         </tr>

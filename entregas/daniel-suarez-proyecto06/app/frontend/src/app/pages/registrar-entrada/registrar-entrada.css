@@ -1,7 +1,7 @@
 /* Fondo sutil detrás del contenido para que no sea todo blanco. */
 :host {
   display: block;
-  background: radial-gradient(900px 360px at 15% -20%, #e9f0f7, transparent 70%);
+  background: radial-gradient(900px 360px at 15% -20%, #E8F0FE, transparent 70%);
 }
 
 /* ===== Layout de dos columnas: tarjeta del form + panel de ocupación ===== */
@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: linear-gradient(135deg, #2c3e50, #3b536b);
+  background: linear-gradient(135deg, #2563EB, #06B6D4);
   color: #fff;
   padding: 0.9rem 1.2rem;
   border-radius: 10px 10px 0 0;
@@ -80,7 +80,7 @@
   margin-bottom: 0.35rem;
 }
 .barra-fondo {
-  background: #e9eef3;
+  background: #E8F0FE;
   border-radius: 999px;
   height: 12px;
   overflow: hidden;
@@ -120,10 +120,10 @@
   cursor: pointer;
   text-align: left;
 }
-.combo-trigger:hover { border-color: #2c3e50; }
+.combo-trigger:hover { border-color: #2563EB; }
 .combo-trigger.placeholder { color: #888; }
 
-.flecha { color: #2c3e50; transition: transform 0.15s; }
+.flecha { color: #1E293B; transition: transform 0.15s; }
 .combo.abierto .flecha { transform: rotate(180deg); }
 
 .combo-lista {
@@ -151,7 +151,7 @@
   border-radius: 4px;
   cursor: pointer;
 }
-.combo-item:hover { background: #eef3f8; }
-.combo-item.seleccionado { background: #2c3e50; color: #fff; font-weight: 600; }
+.combo-item:hover { background: #E8F0FE; }
+.combo-item.seleccionado { background: #2563EB; color: #fff; font-weight: 600; }
 
 .check { font-size: 0.85rem; }

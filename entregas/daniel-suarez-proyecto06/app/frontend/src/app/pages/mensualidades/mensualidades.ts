@@ -259,6 +259,13 @@ export class MensualidadesComponent {
   }
 
   // ===== Renovación =====
+  /** True si el cliente de 'm' ya tiene una mensualidad ACTIVA (no se debe poder renovar otra). */
+  clienteTieneActiva(m: Mensualidad): boolean {
+    return this.mensualidades().some(
+      (x) => x.id_cliente === m.id_cliente && x.estado === 'ACTIVA'
+    );
+  }
+
   pedirRenovar(m: Mensualidad): void {
     this.renovando.set(m);
     this.renovVehiculos.set([]);
