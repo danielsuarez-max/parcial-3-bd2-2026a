@@ -893,9 +893,23 @@ def crear_mensualidad(m: MensualidadIn):
 
 
 @app.get("/mensualidades")
-def listar_mensualidades():
+def listar_mensualidades(
+    estado: str | None = None,   # ACTIVA | VENCIDA | CANCELADA (vacío = todas)
+    q: str | None = None,        # busca en nombre del cliente, documento o placa
+    desde: str | None = None,    # vigencia: solo las que aún corren en/después de esta fecha
+    hasta: str | None = None,    # vigencia: solo las que ya corrían en/antes de esta fecha
+):
     """RF4 — Mensualidades con su cliente, estado, fechas, monto y vehículos (cada
-    uno con SU cupo). 'vehiculos' es una lista de {placa, numero_espacio}."""
+    uno con SU cupo). 'vehiculos' es una lista de {placa, numero_espacio}.
+
+    Filtros opcionales y combinables (se aplican en el servidor para escalar):
+      - ?estado=ACTIVA                 -> solo ese estado.
+      - ?q=ana                         -> nombre, documento o placa contienen 'ana'.
+      - ?desde=2026-05-01&hasta=...    -> mensualidades cuya vigencia se solapa con el rango.
+
+    'cliente_tiene_activa' indica si el cliente ya tiene OTRA (o esta) mensualidad ACTIVA.
+    Se calcula en SQL (no escaneando la respuesta) para que sea correcto aun con filtros.
+    """
     sql = """
         SELECT
             m.id_mensualidad,
@@ -905,17 +919,51 @@ def listar_mensualidades():
             m.fecha_inicio,
             m.fecha_fin,
             m.monto_pagado,
+            EXISTS (
+                SELECT 1 FROM mensualidades m2
+                WHERE m2.id_cliente = m.id_cliente AND m2.estado = 'ACTIVA'
+            ) AS cliente_tiene_activa,
             GROUP_CONCAT(CONCAT(mv.placa, ':', e.numero) ORDER BY mv.placa) AS veh
         FROM mensualidades m
         JOIN clientes c  ON c.id_cliente = m.id_cliente
         LEFT JOIN mensualidad_vehiculo mv ON mv.id_mensualidad = m.id_mensualidad
         LEFT JOIN espacios e ON e.id_espacio = mv.id_espacio
+    """
+    # WHERE dinámico: juntamos solo las condiciones de los filtros que llegaron.
+    condiciones: list[str] = []
+    valores: list = []
+    if estado:
+        e = estado.strip().upper()
+        if e in {"ACTIVA", "VENCIDA", "CANCELADA"}:
+            condiciones.append("m.estado = %s")
+            valores.append(e)
+        # cualquier otro valor se ignora (no filtra)
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        # La placa se busca con EXISTS para NO recortar el GROUP_CONCAT de las demás placas.
+        condiciones.append(
+            "(c.nombre_completo LIKE %s OR c.documento LIKE %s OR EXISTS ("
+            " SELECT 1 FROM mensualidad_vehiculo mv2"
+            " WHERE mv2.id_mensualidad = m.id_mensualidad AND mv2.placa LIKE %s))"
+        )
+        valores.extend([like, like, like])
+    if desde:
+        condiciones.append("m.fecha_fin >= %s")
+        valores.append(desde)
+    if hasta:
+        condiciones.append("m.fecha_inicio <= %s")
+        valores.append(hasta)
+    if condiciones:
+        sql += " WHERE " + " AND ".join(condiciones)
+    sql += """
         GROUP BY m.id_mensualidad, m.id_cliente, c.nombre_completo, m.estado,
                  m.fecha_inicio, m.fecha_fin, m.monto_pagado
         ORDER BY m.fecha_inicio DESC
     """
-    filas = run_query(sql)
+    filas = run_query(sql, tuple(valores))
     for f in filas:
+        # EXISTS llega como 1/0; lo pasamos a booleano real para el JSON.
+        f["cliente_tiene_activa"] = bool(f["cliente_tiene_activa"])
         # "ABC123:1,ABC12D:71" -> [{placa, numero_espacio}, ...]
         vehiculos = []
         if f["veh"]:

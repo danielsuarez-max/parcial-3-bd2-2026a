@@ -138,6 +138,7 @@ export interface Mensualidad {
   id_mensualidad: number;
   id_cliente: number;
   cliente: string;
+  cliente_tiene_activa: boolean;   // ¿el cliente ya tiene una mensualidad ACTIVA?
   estado: 'ACTIVA' | 'VENCIDA' | 'CANCELADA';
   fecha_inicio: string;
   fecha_fin: string;
@@ -294,9 +295,17 @@ export class Api {
     return this.http.post<SalidaOut>(`${this.baseUrl}/ingresos/${idIngreso}/salida`, {});
   }
 
-  /** RF4 — Lista de mensualidades (con cliente, cupo, placas y estado). */
-  getMensualidades(): Observable<Lista<Mensualidad>> {
-    return this.http.get<Lista<Mensualidad>>(`${this.baseUrl}/mensualidades`);
+  /** RF4 — Lista de mensualidades (con cliente, cupo, placas y estado).
+   *  Filtros opcionales (se aplican en el servidor): estado, texto y rango de vigencia. */
+  getMensualidades(
+    estado?: string, q?: string, desde?: string, hasta?: string
+  ): Observable<Lista<Mensualidad>> {
+    const params: Record<string, string> = {};
+    if (estado) params['estado'] = estado;
+    if (q)      params['q'] = q;
+    if (desde)  params['desde'] = desde;
+    if (hasta)  params['hasta'] = hasta;
+    return this.http.get<Lista<Mensualidad>>(`${this.baseUrl}/mensualidades`, { params });
   }
 
   /** RF4 — Catálogo de valor mensual por tipo (para calcular el monto en pantalla). */

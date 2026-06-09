@@ -22,6 +22,12 @@ export class MensualidadesComponent {
   mensualidades = signal<Mensualidad[]>([]);
   cargando = signal(true);
 
+  // --- Filtros (se aplican en el servidor) ---
+  filtroEstado = 'ACTIVA';   // vista inicial: solo activas
+  filtroTexto = '';
+  filtroDesde = '';
+  filtroHasta = '';
+
   // --- Catálogos ---
   tipos = signal<TipoVehiculoItem[]>([]);
   valorMesPorTipo = signal<Map<number, number>>(new Map());     // id_tipo -> valor_mes
@@ -65,10 +71,29 @@ export class MensualidadesComponent {
 
   cargar(): void {
     this.cargando.set(true);
-    this.api.getMensualidades().subscribe({
+    this.api.getMensualidades(
+      this.filtroEstado || undefined,
+      this.filtroTexto.trim() || undefined,
+      this.filtroDesde || undefined,
+      this.filtroHasta || undefined,
+    ).subscribe({
       next: (resp) => { this.mensualidades.set(resp.datos); this.cargando.set(false); },
       error: (err) => { console.error(err); this.toast.error('No se pudieron cargar las mensualidades.'); this.cargando.set(false); }
     });
+  }
+
+  /** Resetea los filtros a la vista inicial (solo ACTIVA) y recarga. */
+  limpiarFiltros(): void {
+    this.filtroEstado = 'ACTIVA';
+    this.filtroTexto = '';
+    this.filtroDesde = '';
+    this.filtroHasta = '';
+    this.cargar();
+  }
+
+  /** ¿Hay algún filtro distinto de la vista inicial? (para mostrar el botón "Limpiar"). */
+  hayFiltrosActivos(): boolean {
+    return this.filtroEstado !== 'ACTIVA' || !!this.filtroTexto || !!this.filtroDesde || !!this.filtroHasta;
   }
 
   /** Formatea con separador de miles (es-CO): 300000 -> "300.000". */
@@ -259,11 +284,10 @@ export class MensualidadesComponent {
   }
 
   // ===== Renovación =====
-  /** True si el cliente de 'm' ya tiene una mensualidad ACTIVA (no se debe poder renovar otra). */
+  /** True si el cliente de 'm' ya tiene una mensualidad ACTIVA (no se debe poder renovar otra).
+   *  El dato lo calcula el backend: así es correcto aunque los filtros oculten la fila activa. */
   clienteTieneActiva(m: Mensualidad): boolean {
-    return this.mensualidades().some(
-      (x) => x.id_cliente === m.id_cliente && x.estado === 'ACTIVA'
-    );
+    return m.cliente_tiene_activa;
   }
 
   pedirRenovar(m: Mensualidad): void {

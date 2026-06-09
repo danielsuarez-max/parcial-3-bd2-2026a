@@ -4,6 +4,24 @@
   margin-bottom: 0.8rem;
 }
 
+/* Barra de filtros: campos en línea que se apilan si no caben. */
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.fila label { margin: 0; color: #1E293B; }
+.fila input,
+.fila select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.fila input[type="text"] { flex: 1; min-width: 220px; }
+
 h3 { margin-top: 1.8rem; }
 
 .formulario { max-width: 900px; }

@@ -78,6 +78,31 @@
 
 <!-- ===== Lista ===== -->
 <h3>Mensualidades registradas</h3>
+
+<!-- ===== Barra de filtros (se aplican en el servidor) ===== -->
+<div class="fila">
+  <input type="text" [(ngModel)]="filtroTexto" name="filtroTexto" autocomplete="off"
+         placeholder="Cliente, documento o placa…" (keyup.enter)="cargar()" />
+
+  <label for="festado">Estado:</label>
+  <select id="festado" [(ngModel)]="filtroEstado" name="filtroEstado" (ngModelChange)="cargar()">
+    <option value="">Todos los estados</option>
+    <option value="ACTIVA">Activa</option>
+    <option value="VENCIDA">Vencida</option>
+    <option value="CANCELADA">Cancelada</option>
+  </select>
+
+  <label for="fdesde">Vigentes entre:</label>
+  <input id="fdesde" type="date" [(ngModel)]="filtroDesde" name="filtroDesde" (ngModelChange)="cargar()" />
+  <span>y</span>
+  <input id="fhasta" type="date" [(ngModel)]="filtroHasta" name="filtroHasta" (ngModelChange)="cargar()" />
+
+  <button class="btn" (click)="cargar()" [disabled]="cargando()">Buscar</button>
+  @if (hayFiltrosActivos()) {
+    <button class="btn-sec" (click)="limpiarFiltros()">Limpiar</button>
+  }
+</div>
+
 <div class="fila-top">
   <button class="btn" (click)="cargar()" [disabled]="cargando()">
     <svg class="icono" [class.girando]="cargando()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
