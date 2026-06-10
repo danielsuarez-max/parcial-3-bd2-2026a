@@ -1,10 +1,20 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnDestroy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, Tarifa, TarifaHistorico, TarifaIn, TarifaMensual
 } from '../../services/api';
 import { Toast } from '../../services/toast';
+import { FormState } from '../../services/form-state';
+
+/** Lo que se conserva de los formularios de tarifas al cambiar de módulo. */
+interface EstadoTarifas {
+  idTipo: number | null;
+  valorHora: number | null;
+  vigenteDesde: string;
+  idTipoMes: number | null;
+  valorMes: number | null;
+}
 
 @Component({
   selector: 'app-tarifas',
@@ -12,9 +22,11 @@ import { Toast } from '../../services/toast';
   templateUrl: './tarifas.html',
   styleUrl: './tarifas.css'
 })
-export class TarifasComponent {
+export class TarifasComponent implements OnDestroy {
   private api = inject(Api);
   private toast = inject(Toast);
+  private formState = inject(FormState);
+  private readonly formKey = 'tarifas';
 
   // --- Tarifas vigentes ---
   tarifas = signal<Tarifa[]>([]);
@@ -47,6 +59,29 @@ export class TarifasComponent {
       next: (resp) => this.tipos.set(resp.datos),
       error: (err) => { console.error(err); this.toast.error('No se pudieron cargar los tipos.'); }
     });
+    this.restaurar();   // recupera lo escrito si se cambió de módulo sin enviar
+  }
+
+  /** Restaura los formularios de tarifas con lo guardado al salir del módulo (si hay). */
+  private restaurar(): void {
+    const s = this.formState.load<EstadoTarifas>(this.formKey);
+    if (!s) return;
+    this.idTipo = s.idTipo;
+    this.valorHora = s.valorHora;
+    this.vigenteDesde = s.vigenteDesde;
+    this.idTipoMes = s.idTipoMes;
+    this.valorMes = s.valorMes;
+  }
+
+  /** Al cambiar de módulo: guarda lo escrito para no perderlo al volver. */
+  ngOnDestroy(): void {
+    this.formState.save(this.formKey, {
+      idTipo: this.idTipo,
+      valorHora: this.valorHora,
+      vigenteDesde: this.vigenteDesde,
+      idTipoMes: this.idTipoMes,
+      valorMes: this.valorMes,
+    } satisfies EstadoTarifas);
   }
 
   cargarTarifas(): void {

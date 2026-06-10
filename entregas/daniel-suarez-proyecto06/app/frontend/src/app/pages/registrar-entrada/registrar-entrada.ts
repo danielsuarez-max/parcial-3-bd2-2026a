@@ -1,9 +1,23 @@
-import { Component, signal, inject, HostListener } from '@angular/core';
+import { Component, signal, inject, HostListener, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, EspacioLibre, EntradaIn, MensualidadActiva, Ocupacion, VehiculoInfo
 } from '../../services/api';
 import { Toast } from '../../services/toast';
+import { FormState } from '../../services/form-state';
+
+/** Lo que se conserva del formulario de entrada al cambiar de modulo. */
+interface EstadoEntrada {
+  placa: string;
+  idTipo: number | null;
+  idEspacio: number | null;
+  color: string;
+  marca: string;
+  esMensual: boolean | null;
+  mensual: MensualidadActiva | null;
+  vehiculo: VehiculoInfo | null;
+  vehiculoConocido: boolean;
+}
 
 @Component({
   selector: 'app-registrar-entrada',
@@ -11,9 +25,11 @@ import { Toast } from '../../services/toast';
   templateUrl: './registrar-entrada.html',
   styleUrl: './registrar-entrada.css'
 })
-export class RegistrarEntradaComponent {
+export class RegistrarEntradaComponent implements OnDestroy {
   private api = inject(Api);
   private toast = inject(Toast);
+  private formState = inject(FormState);
+  private readonly formKey = 'entrada';
 
   // --- Datos del formulario (enlazados con [(ngModel)]) ---
   placa = '';
@@ -51,6 +67,39 @@ export class RegistrarEntradaComponent {
     });
 
     this.cargarOcupacion();
+    this.restaurar();   // si quedó algo escrito antes de cambiar de módulo, lo recupera
+  }
+
+  /** Restaura el formulario con lo que se guardó al salir del módulo (si hay). */
+  private restaurar(): void {
+    const s = this.formState.load<EstadoEntrada>(this.formKey);
+    if (!s) return;
+    this.placa = s.placa;
+    this.idTipo = s.idTipo;
+    this.idEspacio = s.idEspacio;
+    this.color = s.color;
+    this.marca = s.marca;
+    this.esMensual.set(s.esMensual);
+    this.mensual.set(s.mensual);
+    this.vehiculo.set(s.vehiculo);
+    this.vehiculoConocido.set(s.vehiculoConocido);
+    // La lista de espacios (caso ocasional) es derivada: la recargamos.
+    if (s.esMensual === false && s.idTipo !== null) this.recargarEspacios();
+  }
+
+  /** Al cambiar de módulo: guarda lo escrito para no perderlo al volver. */
+  ngOnDestroy(): void {
+    this.formState.save(this.formKey, {
+      placa: this.placa,
+      idTipo: this.idTipo,
+      idEspacio: this.idEspacio,
+      color: this.color,
+      marca: this.marca,
+      esMensual: this.esMensual(),
+      mensual: this.mensual(),
+      vehiculo: this.vehiculo(),
+      vehiculoConocido: this.vehiculoConocido(),
+    } satisfies EstadoEntrada);
   }
 
   /** Trae el estado de ocupación para el panel lateral. */

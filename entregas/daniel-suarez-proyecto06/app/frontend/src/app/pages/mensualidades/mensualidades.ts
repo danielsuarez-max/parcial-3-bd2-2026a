@@ -1,12 +1,23 @@
-import { Component, signal, inject, HostListener } from '@angular/core';
+import { Component, signal, inject, HostListener, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   Api, TipoVehiculoItem, EspacioLibre, Mensualidad, MensualidadIn, VehiculoMensualIn
 } from '../../services/api';
 import { Toast } from '../../services/toast';
+import { FormState } from '../../services/form-state';
 
 // Una fila editable de vehículo: placa + tipo + su cupo (id_espacio).
 type FilaVehiculo = { placa: string; id_tipo: number | null; id_espacio: number | null };
+
+/** Lo que se conserva del formulario de alta al cambiar de módulo. */
+interface EstadoMensualidadAlta {
+  documento: string;
+  nombre: string;
+  telefono: string;
+  email: string;
+  fechaInicio: string;
+  vehiculos: FilaVehiculo[];
+}
 
 @Component({
   selector: 'app-mensualidades',
@@ -14,9 +25,11 @@ type FilaVehiculo = { placa: string; id_tipo: number | null; id_espacio: number 
   templateUrl: './mensualidades.html',
   styleUrl: './mensualidades.css'
 })
-export class MensualidadesComponent {
+export class MensualidadesComponent implements OnDestroy {
   private api = inject(Api);
   private toast = inject(Toast);
+  private formState = inject(FormState);
+  private readonly formKey = 'mensualidad-alta';
 
   // --- Lista ---
   mensualidades = signal<Mensualidad[]>([]);
@@ -67,6 +80,35 @@ export class MensualidadesComponent {
       },
       error: (err) => console.error(err)
     });
+    this.restaurar();   // recupera el alta si se cambió de módulo sin enviar
+  }
+
+  /** Restaura el formulario de alta con lo guardado al salir del módulo (si hay). */
+  private restaurar(): void {
+    const s = this.formState.load<EstadoMensualidadAlta>(this.formKey);
+    if (!s) return;
+    this.documento = s.documento;
+    this.nombre = s.nombre;
+    this.telefono = s.telefono;
+    this.email = s.email;
+    this.fechaInicio = s.fechaInicio;
+    this.vehiculos.set(s.vehiculos.map((v) => ({ ...v })));
+    // Los cupos libres por tipo son derivados: precargarlos para los combos.
+    for (const v of s.vehiculos) {
+      if (v.id_tipo !== null) this.cargarLibresDeTipo(v.id_tipo);
+    }
+  }
+
+  /** Al cambiar de módulo: guarda el alta para no perderla al volver. */
+  ngOnDestroy(): void {
+    this.formState.save(this.formKey, {
+      documento: this.documento,
+      nombre: this.nombre,
+      telefono: this.telefono,
+      email: this.email,
+      fechaInicio: this.fechaInicio,
+      vehiculos: this.vehiculos().map((v) => ({ ...v })),
+    } satisfies EstadoMensualidadAlta);
   }
 
   cargar(): void {
