@@ -8,11 +8,11 @@
     <fieldset>
       <legend>Cliente</legend>
       <label for="doc">Documento</label>
-      <input id="doc" type="text" [(ngModel)]="documento" name="doc" autocomplete="off" />
+      <input id="doc" type="text" inputmode="numeric" [(ngModel)]="documento" name="doc" autocomplete="off" />
       <label for="nom">Nombre completo</label>
       <input id="nom" type="text" [(ngModel)]="nombre" name="nom" autocomplete="off" />
       <label for="tel">Teléfono</label>
-      <input id="tel" type="text" [(ngModel)]="telefono" name="tel" autocomplete="off" />
+      <input id="tel" type="tel" inputmode="tel" [(ngModel)]="telefono" name="tel" autocomplete="off" />
       <label for="mail">Email</label>
       <input id="mail" type="email" [(ngModel)]="email" name="mail" autocomplete="off" />
     </fieldset>

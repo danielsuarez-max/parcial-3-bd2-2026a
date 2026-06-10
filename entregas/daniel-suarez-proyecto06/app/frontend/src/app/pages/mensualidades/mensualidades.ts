@@ -233,6 +233,18 @@ export class MensualidadesComponent implements OnDestroy {
     if (!this.documento.trim() || !this.nombre.trim()) {
       this.toast.error('Documento y nombre del cliente son obligatorios.'); return;
     }
+    // Formato (reglas Colombia): cédula obligatoria; teléfono y email solo si se escriben.
+    if (!/^\d{6,10}$/.test(this.documento.trim())) {
+      this.toast.error('La cédula debe tener entre 6 y 10 dígitos (solo números).'); return;
+    }
+    const tel = this.telefono.trim().replace(/[\s\-().]/g, '');
+    if (tel && !/^(\+?57)?(\d{7}|\d{10})$/.test(tel)) {
+      this.toast.error('Teléfono inválido: 7 o 10 dígitos (celular 10, fijo 7), opcional +57.'); return;
+    }
+    const mail = this.email.trim();
+    if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) {
+      this.toast.error('Email inválido (ej. nombre@dominio.com).'); return;
+    }
     if (!this.fechaInicio) { this.toast.error('Indica la fecha de inicio.'); return; }
 
     const vehs = this.normalizar(this.vehiculos());

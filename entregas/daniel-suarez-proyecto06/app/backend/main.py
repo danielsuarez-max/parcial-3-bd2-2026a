@@ -773,12 +773,55 @@ def tarifas_historico(id_tipo: TipoVehiculo):
 #  RF4 — CLIENTES
 # ============================================================
 
+# Formatos válidos (Colombia). La cédula es obligatoria; teléfono y email son
+# opcionales (se validan solo si vienen con algún valor).
+CEDULA_RE   = re.compile(r"^\d{6,10}$")                  # 6 a 10 dígitos
+TELEFONO_RE = re.compile(r"^(\+?57)?(\d{7}|\d{10})$")    # +57 opcional + fijo(7) o celular(10)
+EMAIL_RE    = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")  # formato básico algo@dominio.tld
+
+
 class ClienteIn(BaseModel):
     """Datos de un cliente (persona dueña de mensualidades)."""
     documento: str
     nombre_completo: str
     telefono: str | None = None
     email: str | None = None
+
+    @field_validator("documento")
+    @classmethod
+    def validar_documento(cls, v: str) -> str:
+        """Cédula colombiana: solo dígitos, entre 6 y 10."""
+        v = v.strip()
+        if not CEDULA_RE.match(v):
+            raise ValueError("La cédula debe tener entre 6 y 10 dígitos (solo números).")
+        return v
+
+    @field_validator("telefono")
+    @classmethod
+    def validar_telefono(cls, v: str | None) -> str | None:
+        """Teléfono opcional. Quita el formato (espacios, guiones, paréntesis) y valida
+        fijo(7) o celular(10) dígitos, con prefijo +57 opcional. Se guarda normalizado."""
+        if v is None:
+            return v
+        limpio = re.sub(r"[\s\-().]", "", v.strip())
+        if limpio == "":
+            return None
+        if not TELEFONO_RE.match(limpio):
+            raise ValueError("Teléfono inválido: 7 o 10 dígitos (celular 10, fijo 7), opcional +57.")
+        return limpio
+
+    @field_validator("email")
+    @classmethod
+    def validar_email(cls, v: str | None) -> str | None:
+        """Email opcional con formato básico algo@dominio.tld."""
+        if v is None:
+            return v
+        v = v.strip()
+        if v == "":
+            return None
+        if not EMAIL_RE.match(v):
+            raise ValueError("Email inválido (ej. nombre@dominio.com).")
+        return v
 
 
 @app.get("/clientes")
