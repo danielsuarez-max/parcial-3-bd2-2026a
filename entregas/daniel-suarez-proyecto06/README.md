@@ -25,9 +25,8 @@ persistencia en una base de datos relacional.
 daniel-suarez-proyecto06/
 ├── ddl/                      Scripts SQL (crear BD, datos de prueba, consultas)
 │   ├── 01-crear-bd.sql       DDL: crea las 10 tablas con PK, FK, CHECK e índices
-│   ├── 02-datos-prueba.sql   Datos de prueba (tipos, espacios, clientes, ingresos…)
-│   ├── 03-consultas.sql      Consultas/reportes que cubren RF5, RF6 y RF7
-│   └── 04-tarifa-mensual.sql Catálogo de tarifa mensual por tipo (con semilla)
+│   ├── 02-datos-prueba.sql   Datos de prueba (tipos, tarifas, espacios, clientes…)
+│   └── 03-consultas.sql      Consultas/reportes que cubren RF5, RF6 y RF7
 ├── mer/
 │   ├── parqueadero.png       Diagrama Entidad–Relación (PK, FK, cardinalidades)
 │   └── notas-normalizacion.md  Verificación 1FN / 2FN / 3FN tabla por tabla
@@ -63,8 +62,7 @@ El orden es: **(1) base de datos → (2) backend → (3) frontend.**
    | Orden | Script | Qué hace |
    |---|---|---|
    | 1 | `ddl/01-crear-bd.sql` | Crea la BD `parqueadero` y sus 10 tablas. |
-   | 2 | `ddl/02-datos-prueba.sql` | Inserta los datos de prueba. |
-   | 3 | `ddl/04-tarifa-mensual.sql` | Siembra las tarifas mensuales por tipo. |
+   | 2 | `ddl/02-datos-prueba.sql` | Inserta todos los datos de prueba (incluidas las tarifas mensuales). |
 
    > El script `01` borra la BD `parqueadero` si ya existe (`DROP DATABASE IF
    > EXISTS`) para partir de un estado limpio. Ejecutarlo solo en desarrollo.

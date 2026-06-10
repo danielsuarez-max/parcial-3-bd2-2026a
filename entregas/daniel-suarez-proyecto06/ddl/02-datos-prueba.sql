@@ -8,7 +8,8 @@
 --
 -- Contenido:
 --   5  tipos de vehículo
---   5  tarifas (una por tipo)
+--   5  tarifas por hora (una por tipo)
+--   5  tarifas mensuales (una por tipo)
 --  100 espacios numerados (1..100)
 --  12  clientes
 --  ~30 vehículos
@@ -28,6 +29,7 @@ DELETE FROM clientes;
 DELETE FROM espacio_tipo_permitido;
 DELETE FROM espacios;
 DELETE FROM tarifas;
+DELETE FROM tarifa_mensual;
 DELETE FROM tipo_vehiculo;
 
 -- Reiniciar los AUTO_INCREMENT para que los IDs sean predecibles
@@ -59,6 +61,18 @@ INSERT INTO tarifas (id_tipo, valor_hora, vigente_desde, activa) VALUES
     (4, 2500.00, '2026-01-01', 1),   -- Moto:      $2.500/h
     (5, 1000.00, '2026-01-01', 1);   -- Bicicleta: $1.000/h
 -- IDs tarifa: 1=Carro, 2=Camioneta, 3=Camión, 4=Moto, 5=Bicicleta
+
+-- =========================================================================
+-- 2b) tarifa_mensual — valor del mes por tipo de vehículo
+--     El monto de cada mensualidad se guarda congelado en
+--     mensualidades.monto_pagado; este catálogo solo fija el precio vigente.
+-- =========================================================================
+INSERT INTO tarifa_mensual (id_tipo, valor_mes) VALUES
+    (1, 150000.00),   -- Carro
+    (2, 180000.00),   -- Camioneta
+    (3, 220000.00),   -- Camión
+    (4,  70000.00),   -- Moto
+    (5,  30000.00);   -- Bicicleta
 
 -- =========================================================================
 -- 3) espacios — 100 espacios numerados
