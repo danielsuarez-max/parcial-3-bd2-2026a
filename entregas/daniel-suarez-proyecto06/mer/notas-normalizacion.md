@@ -5,19 +5,20 @@ la exigencia mínima del parcial.
 
 ## 1. Resumen del modelo
 
-El modelo cuenta con 9 entidades:
+El modelo cuenta con 10 entidades:
 
 | # | Entidad | Tipo | PK |
 |---|---|---|---|
 | 1 | `tipo_vehiculo` | Catálogo | `id_tipo` |
 | 2 | `tarifas` | Catálogo histórico | `id_tarifa` |
-| 3 | `vehiculos` | Maestro | `placa` |
-| 4 | `clientes` | Maestro | `id_cliente` |
-| 5 | `espacios` | Catálogo | `id_espacio` |
-| 6 | `espacio_tipo_permitido` | Tabla puente N–M | `(id_espacio, id_tipo)` |
-| 7 | `mensualidades` | Transaccional | `id_mensualidad` |
-| 8 | `mensualidad_vehiculo` | Tabla puente N–M | `(id_mensualidad, placa)` |
-| 9 | `ingresos` | Transaccional | `id_ingreso` |
+| 3 | `tarifa_mensual` | Catálogo | `id_tipo` |
+| 4 | `vehiculos` | Maestro | `placa` |
+| 5 | `clientes` | Maestro | `id_cliente` |
+| 6 | `espacios` | Catálogo | `id_espacio` |
+| 7 | `espacio_tipo_permitido` | Tabla puente N–M | `(id_espacio, id_tipo)` |
+| 8 | `mensualidades` | Transaccional | `id_mensualidad` |
+| 9 | `mensualidad_vehiculo` | Tabla puente N–M | `(id_mensualidad, placa)` |
+| 10 | `ingresos` | Transaccional | `id_ingreso` |
 
 > **Convención de nombres:** las tablas que representan colecciones se nombran
 > en plural (clientes, espacios, ingresos, mensualidades, tarifas, vehiculos);
@@ -44,9 +45,21 @@ una clave compuesta. (Solo aplica a tablas con PK compuesta.)
 
 Las tablas con PK compuesta son `mensualidad_vehiculo` (PK
 `(id_mensualidad, placa)`) y `espacio_tipo_permitido` (PK
-`(id_espacio, id_tipo)`). **Ninguna de las dos tiene atributos
-adicionales** más allá de la propia clave, por lo que cumplen 2FN
-trivialmente.
+`(id_espacio, id_tipo)`).
+
+- **`espacio_tipo_permitido`** no tiene atributos fuera de la propia clave,
+  por lo que cumple 2FN trivialmente.
+
+- **`mensualidad_vehiculo`** sí tiene un atributo no-clave: `id_espacio`
+  (el cupo reservado para ESE vehículo dentro de ESA mensualidad). Hay que
+  comprobar que no depende solo de una parte de la clave:
+    - ¿Depende solo de `placa`? **No**: el mismo vehículo puede tener un
+      espacio distinto en mensualidades distintas (renovaciones, cambios).
+    - ¿Depende solo de `id_mensualidad`? **No**: una mensualidad cubre
+      varios vehículos, y cada uno tiene su propio espacio.
+    - El espacio queda determinado únicamente por el par completo
+      `(id_mensualidad, placa)` → **dependencia total de la clave**.
+  Por tanto cumple 2FN (no hay dependencia parcial).
 
 Las demás tablas tienen PK simple, por lo que 2FN se cumple por definición.
 
@@ -61,12 +74,13 @@ Verificación entidad por entidad:
 |---|---|---|---|
 | `tipo_vehiculo` | `nombre`, `descripcion` | Solo de `id_tipo` | ✅ |
 | `tarifas` | `id_tipo`, `valor_hora`, `vigente_desde`, `activa` | Solo de `id_tarifa` | ✅ |
+| `tarifa_mensual` | `valor_mes` | Solo de `id_tipo` | ✅ |
 | `vehiculos` | `id_tipo`, `color`, `marca` | Solo de `placa` | ✅ |
 | `clientes` | `documento`, `nombre_completo`, `telefono`, `email` | Solo de `id_cliente` | ✅ |
 | `espacios` | `numero`, `estado` | Solo de `id_espacio` | ✅ |
 | `espacio_tipo_permitido` | (ninguno) | — | ✅ |
-| `mensualidades` | `id_cliente`, `id_espacio`, `fecha_inicio`, `fecha_fin`, `monto_pagado`, `estado` | Solo de `id_mensualidad` | ✅ |
-| `mensualidad_vehiculo` | (ninguno) | — | ✅ |
+| `mensualidades` | `id_cliente`, `fecha_inicio`, `fecha_fin`, `monto_pagado`, `estado` | Solo de `id_mensualidad` | ✅ |
+| `mensualidad_vehiculo` | `id_espacio` | Solo de la PK `(id_mensualidad, placa)` | ✅ |
 | `ingresos` | `placa`, `id_espacio`, `fecha_hora_entrada`, `fecha_hora_salida`, `es_mensual`, `id_mensualidad`, `id_tarifa`, `monto_cobrado` | Solo de `id_ingreso` | ✅ |
 
 **Punto sutil — caso `ingresos`:**
@@ -88,6 +102,14 @@ decisión consciente de modelado, no una redundancia accidental.
   sobrescribir el precio en `tipo_vehiculo`, las tarifas son una tabla
   independiente (`tarifas`) que conserva versiones a lo largo del tiempo.
   Esto evita anomalías de actualización al cambiar precios.
+
+- **Tarifa mensual en tabla propia (`tarifa_mensual`)**: el valor del mes
+  por tipo de vehículo se guarda separado de `tipo_vehiculo` para no mezclar
+  el catálogo de tipos (qué es un "Carro") con su precio mensual (cuánto
+  cuesta hoy el cupo de un carro). El monto efectivo de cada contrato no se
+  lee en vivo de aquí, sino que se congela en `mensualidades.monto_pagado`
+  al momento de pagar, preservando el histórico aunque luego cambien estos
+  precios (mismo criterio que `tarifas` para el cobro por hora).
 
 - **Separación `clientes` ↔ `mensualidades`**: un cliente puede tener varias
   mensualidades (renovaciones). No se duplican datos personales por cada
