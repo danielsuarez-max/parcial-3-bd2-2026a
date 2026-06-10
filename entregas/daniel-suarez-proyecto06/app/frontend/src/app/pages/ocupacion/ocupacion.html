@@ -43,9 +43,9 @@
          [class.critico]="nivelAlerta() === 'critico'"
          [class.lleno]="nivelAlerta() === 'lleno'">
       @if (nivelAlerta() === 'lleno') {
-        🚫 <strong>Parqueadero LLENO</strong> — no hay espacios disponibles.
+        <strong>Parqueadero LLENO</strong> — no hay espacios disponibles.
       } @else {
-        ⚠️ <strong>Capacidad casi llena</strong> — quedan {{ d.libres }} espacio(s) libre(s).
+        <strong>Capacidad casi llena</strong> — quedan {{ d.libres }} espacio(s) libre(s).
       }
     </div>
   }

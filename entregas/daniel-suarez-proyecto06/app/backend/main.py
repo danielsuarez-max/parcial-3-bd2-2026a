@@ -96,7 +96,7 @@ class TipoVehiculo(IntEnum):
 @app.get("/")
 def inicio():
     """Endpoint de cortesía: confirma que el API está vivo."""
-    return {"mensaje": "API Parqueadero funcionando 🚗"}
+    return {"mensaje": "API Parqueadero funcionando"}
 
 
 @app.get("/ingresos/dentro")
@@ -354,6 +354,28 @@ def mensualidad_de_placa(placa: str):
           AND CURDATE() BETWEEN m.fecha_inicio AND m.fecha_fin
     """
     return con_total(run_query(sql, (placa,)))
+
+
+@app.get("/vehiculos/{placa}")
+def datos_de_vehiculo(placa: str):
+    """
+    Datos guardados de una placa, para "recordarlos" al registrar una entrada.
+    Si la placa ya existe (mensual u ocasional que regresó antes), devuelve su
+    tipo, color y marca; así el operador no tiene que reescribirlos ni equivocarse
+    de tipo. Para placas nuevas responde {existe: False} con los campos en null.
+    Ejemplo:  /vehiculos/ABC123
+    """
+    placa = placa.strip().upper()
+    sql = """
+        SELECT v.id_tipo, tv.nombre AS tipo, v.color, v.marca
+        FROM vehiculos v
+        JOIN tipo_vehiculo tv ON tv.id_tipo = v.id_tipo
+        WHERE v.placa = %s
+    """
+    filas = run_query(sql, (placa,))
+    if filas:
+        return {"existe": True, **filas[0]}
+    return {"existe": False, "id_tipo": None, "tipo": None, "color": None, "marca": None}
 
 
 # ============================================================

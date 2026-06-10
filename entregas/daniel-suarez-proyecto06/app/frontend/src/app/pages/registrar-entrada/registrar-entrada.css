@@ -101,6 +101,24 @@
   margin: 0.6rem 0;
 }
 
+/* ===== Datos recordados (placa ya registrada): aviso + campos no editables ===== */
+.nota-recordado {
+  background: #eef4ff;
+  border: 1px solid #c7d7f5;
+  color: #2c4a7c;
+  border-radius: 6px;
+  padding: 0.55rem 0.8rem;
+  margin: 0.6rem 0;
+  font-size: 0.88rem;
+}
+/* Campo de solo lectura: gris azulado suave que comunica "no editable",
+   manteniendo el mismo tamaño/espaciado que los demás campos del formulario. */
+.recordado {
+  background: #f1f5f9;
+  color: #475569;
+  cursor: default;
+}
+
 /* ===== Dropdown personalizado de espacios ===== */
 /* position:relative en el padre + position:absolute en la lista =
    la lista flota anclada al botón y se superpone a los campos siguientes. */

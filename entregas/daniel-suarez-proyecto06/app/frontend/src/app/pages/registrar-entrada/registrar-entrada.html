@@ -21,6 +21,11 @@
   <input id="placa" type="text" [(ngModel)]="placa" name="placa"
          (blur)="onPlacaBlur()" placeholder="Ej. ABC123" autocomplete="off" />
 
+  <!-- Aviso: placa ya registrada -> datos recordados (no editables) -->
+  @if (vehiculoConocido()) {
+    <p class="nota-recordado">Placa ya registrada: tipo, color y marca recordados (no editables).</p>
+  }
+
   <!-- Banner si la placa es mensual -->
   @if (esMensual() && mensual(); as m) {
     <p class="banner-mensual">
@@ -29,14 +34,18 @@
     </p>
   }
 
-  <!-- Tipo -->
+  <!-- Tipo: si la placa ya existe, se muestra recordado (no editable) -->
   <label for="tipo">Tipo de vehículo</label>
-  <select id="tipo" [(ngModel)]="idTipo" name="tipo" (ngModelChange)="onTipoChange()">
-    <option [ngValue]="null" disabled>— Elige un tipo —</option>
-    @for (t of tipos(); track t.id_tipo) {
-      <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
-    }
-  </select>
+  @if (vehiculoConocido()) {
+    <input id="tipo" class="recordado" type="text" [value]="vehiculo()?.tipo" readonly />
+  } @else {
+    <select id="tipo" [(ngModel)]="idTipo" name="tipo" (ngModelChange)="onTipoChange()">
+      <option [ngValue]="null" disabled>— Elige un tipo —</option>
+      @for (t of tipos(); track t.id_tipo) {
+        <option [ngValue]="t.id_tipo">{{ t.nombre }}</option>
+      }
+    </select>
+  }
 
   <!-- Espacio: solo si NO es mensual (el mensual usa su cupo) -->
   @if (esMensual() !== true) {
@@ -72,12 +81,14 @@
     }
   }
 
-  <!-- Opcionales -->
+  <!-- Opcionales (recordados y bloqueados si la placa ya existe) -->
   <label for="color">Color</label>
-  <input id="color" type="text" [(ngModel)]="color" name="color" autocomplete="off" />
+  <input id="color" type="text" [(ngModel)]="color" name="color" autocomplete="off"
+         [readonly]="vehiculoConocido()" [class.recordado]="vehiculoConocido()" />
 
   <label for="marca">Marca</label>
-  <input id="marca" type="text" [(ngModel)]="marca" name="marca" autocomplete="off" />
+  <input id="marca" type="text" [(ngModel)]="marca" name="marca" autocomplete="off"
+         [readonly]="vehiculoConocido()" [class.recordado]="vehiculoConocido()" />
 
   <div class="acciones">
     <button class="btn" type="submit" [disabled]="enviando()">

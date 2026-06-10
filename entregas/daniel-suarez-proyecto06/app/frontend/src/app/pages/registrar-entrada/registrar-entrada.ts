@@ -1,7 +1,7 @@
 import { Component, signal, inject, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
-  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, MensualidadActiva, Ocupacion
+  Api, TipoVehiculoItem, EspacioLibre, EntradaIn, MensualidadActiva, Ocupacion, VehiculoInfo
 } from '../../services/api';
 import { Toast } from '../../services/toast';
 
@@ -32,6 +32,11 @@ export class RegistrarEntradaComponent {
   esMensual = signal<boolean | null>(null);
   mensual = signal<MensualidadActiva | null>(null);
 
+  // --- Datos recordados de una placa ya registrada ---
+  // vehiculoConocido = true -> tipo/color/marca se autocompletan y quedan bloqueados.
+  vehiculo = signal<VehiculoInfo | null>(null);
+  vehiculoConocido = signal(false);
+
   // --- Estado del envío ---
   enviando = signal(false);
 
@@ -56,16 +61,54 @@ export class RegistrarEntradaComponent {
     });
   }
 
-  /** Al salir del campo placa: normaliza a mayúsculas y consulta si es mensual. */
+  /**
+   * Al salir del campo placa: normaliza a mayúsculas, recuerda los datos si la
+   * placa ya está registrada (tipo/color/marca, bloqueados) y consulta si es mensual.
+   */
   onPlacaBlur(): void {
     this.placa = this.placa.trim().toUpperCase();
 
     if (!this.placa) {
+      this.olvidarRecordado();
       this.esMensual.set(null);
       this.mensual.set(null);
       return;
     }
 
+    // 1) ¿La placa ya existe? -> recordamos su tipo y atributos (no editables).
+    this.api.getVehiculo(this.placa).subscribe({
+      next: (v) => {
+        if (v.existe) {
+          this.vehiculo.set(v);
+          this.vehiculoConocido.set(true);
+          this.idTipo = v.id_tipo;
+          this.color = v.color ?? '';
+          this.marca = v.marca ?? '';
+        } else {
+          this.olvidarRecordado();
+        }
+        // 2) Ya con el tipo definido, verificamos la mensualidad (cupo reservado).
+        this.verificarMensualidad();
+      },
+      error: (err) => {
+        console.error(err);
+        this.olvidarRecordado();
+        this.verificarMensualidad();
+      }
+    });
+  }
+
+  /** Olvida los datos recordados (placa nueva o vacía): los campos quedan editables. */
+  private olvidarRecordado(): void {
+    this.vehiculo.set(null);
+    this.vehiculoConocido.set(false);
+    this.idTipo = null;
+    this.color = '';
+    this.marca = '';
+  }
+
+  /** Consulta si la placa tiene mensualidad activa hoy (define el cupo y el modo). */
+  private verificarMensualidad(): void {
     this.api.getMensualidadDePlaca(this.placa).subscribe({
       next: (resp) => {
         if (resp.datos.length > 0) {
@@ -184,6 +227,8 @@ export class RegistrarEntradaComponent {
     this.espaciosAbierto.set(false);
     this.esMensual.set(null);
     this.mensual.set(null);
+    this.vehiculo.set(null);
+    this.vehiculoConocido.set(false);
   }
 
   /**

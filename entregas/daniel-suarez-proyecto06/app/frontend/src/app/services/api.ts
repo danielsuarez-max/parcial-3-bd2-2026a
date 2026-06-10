@@ -195,6 +195,17 @@ export interface MensualidadActiva {
   nombre_completo: string;
 }
 
+/** Datos guardados de una placa (GET /vehiculos/{placa}).
+ *  Sirve para "recordar" el tipo y atributos al registrar una entrada.
+ *  Si la placa es nueva, existe=false y el resto va en null. */
+export interface VehiculoInfo {
+  existe: boolean;
+  id_tipo: number | null;
+  tipo: string | null;
+  color: string | null;
+  marca: string | null;
+}
+
 /** Una fila del reporte por día (GET /reportes/dia). RF6.
  *  El recaudo diario es solo de ocasionales (los mensuales no cobran por ingreso). */
 export interface ReporteDia {
@@ -281,6 +292,13 @@ export class Api {
   getMensualidadDePlaca(placa: string): Observable<Lista<MensualidadActiva>> {
     return this.http.get<Lista<MensualidadActiva>>(
       `${this.baseUrl}/vehiculos/${encodeURIComponent(placa)}/mensualidad`
+    );
+  }
+
+  /** Datos guardados de una placa (para recordar tipo/color/marca al registrar). */
+  getVehiculo(placa: string): Observable<VehiculoInfo> {
+    return this.http.get<VehiculoInfo>(
+      `${this.baseUrl}/vehiculos/${encodeURIComponent(placa)}`
     );
   }
 

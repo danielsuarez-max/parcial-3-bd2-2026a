@@ -67,4 +67,4 @@ def transaccion():
 if __name__ == "__main__":
     print("Probando conexión a MySQL...")
     filas = run_query("SELECT COUNT(*) AS total FROM espacios")
-    print("Conexión OK ✅  -> espacios en la BD:", filas[0]["total"])
+    print("Conexión OK -> espacios en la BD:", filas[0]["total"])

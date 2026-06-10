@@ -72,16 +72,16 @@ Verificación entidad por entidad:
 
 | Tabla | Atributos no-clave | Dependencia | ¿3FN? |
 |---|---|---|---|
-| `tipo_vehiculo` | `nombre`, `descripcion` | Solo de `id_tipo` | ✅ |
-| `tarifas` | `id_tipo`, `valor_hora`, `vigente_desde`, `activa` | Solo de `id_tarifa` | ✅ |
-| `tarifa_mensual` | `valor_mes` | Solo de `id_tipo` | ✅ |
-| `vehiculos` | `id_tipo`, `color`, `marca` | Solo de `placa` | ✅ |
-| `clientes` | `documento`, `nombre_completo`, `telefono`, `email` | Solo de `id_cliente` | ✅ |
-| `espacios` | `numero`, `estado` | Solo de `id_espacio` | ✅ |
-| `espacio_tipo_permitido` | (ninguno) | — | ✅ |
-| `mensualidades` | `id_cliente`, `fecha_inicio`, `fecha_fin`, `monto_pagado`, `estado` | Solo de `id_mensualidad` | ✅ |
-| `mensualidad_vehiculo` | `id_espacio` | Solo de la PK `(id_mensualidad, placa)` | ✅ |
-| `ingresos` | `placa`, `id_espacio`, `fecha_hora_entrada`, `fecha_hora_salida`, `es_mensual`, `id_mensualidad`, `id_tarifa`, `monto_cobrado` | Solo de `id_ingreso` | ✅ |
+| `tipo_vehiculo` | `nombre`, `descripcion` | Solo de `id_tipo` | Sí |
+| `tarifas` | `id_tipo`, `valor_hora`, `vigente_desde`, `activa` | Solo de `id_tarifa` | Sí |
+| `tarifa_mensual` | `valor_mes` | Solo de `id_tipo` | Sí |
+| `vehiculos` | `id_tipo`, `color`, `marca` | Solo de `placa` | Sí |
+| `clientes` | `documento`, `nombre_completo`, `telefono`, `email` | Solo de `id_cliente` | Sí |
+| `espacios` | `numero`, `estado` | Solo de `id_espacio` | Sí |
+| `espacio_tipo_permitido` | (ninguno) | — | Sí |
+| `mensualidades` | `id_cliente`, `fecha_inicio`, `fecha_fin`, `monto_pagado`, `estado` | Solo de `id_mensualidad` | Sí |
+| `mensualidad_vehiculo` | `id_espacio` | Solo de la PK `(id_mensualidad, placa)` | Sí |
+| `ingresos` | `placa`, `id_espacio`, `fecha_hora_entrada`, `fecha_hora_salida`, `es_mensual`, `id_mensualidad`, `id_tarifa`, `monto_cobrado` | Solo de `id_ingreso` | Sí |
 
 **Punto sutil — caso `ingresos`:**
 

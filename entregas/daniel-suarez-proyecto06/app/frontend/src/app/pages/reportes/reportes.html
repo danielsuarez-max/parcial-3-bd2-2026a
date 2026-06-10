@@ -64,7 +64,7 @@
   <div class="bloque-header">
     <h3>Por mes</h3>
     <button class="btn btn-sec" (click)="abrirGrafico()"
-            [disabled]="reporteMes().length === 0">📊 Gráfico</button>
+            [disabled]="reporteMes().length === 0">Gráfico</button>
   </div>
   @if (reporteMes().length === 0) {
     <p class="aviso">No hay datos mensuales.</p>
@@ -109,7 +109,7 @@
   </div>
 
   <!-- Modal con la gráfica mensual (apilada: ocasionales abajo + mensualidades arriba). RF6.
-       Sale de la fila para no forzar scroll horizontal; emerge al pulsar "📊 Gráfico". -->
+       Sale de la fila para no forzar scroll horizontal; emerge al pulsar "Gráfico". -->
   @if (mostrarGrafico()) {
     <div class="modal-overlay overlay-top" (click)="cerrarGrafico()">
       <div class="modal-card grafico-modal" (click)="$event.stopPropagation()">
