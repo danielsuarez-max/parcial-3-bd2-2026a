@@ -20,7 +20,10 @@
   border-radius: 4px;
   box-sizing: border-box;
 }
-.fila input[type="text"] { flex: 1; min-width: 220px; }
+/* Anula el min-width: 220px global (styles.css) que partía la fila. */
+.fila input[type="text"] { flex: 1 1 160px; min-width: 160px; }
+.fila select            { flex: 0 0 auto; min-width: 0; width: auto; }
+.fila input[type="date"] { flex: 0 0 auto; min-width: 0; width: 150px; }
 
 h3 { margin-top: 1.8rem; }
 
